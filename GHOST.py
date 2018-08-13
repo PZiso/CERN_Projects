@@ -1,4 +1,3 @@
-
 # coding: utf-8
 
 # In[1]:
@@ -487,8 +486,7 @@ class HTadjust(object):
         else:
             msg='End of module HTadjust: Kill flag raised by the user.\n'
             self.logger_or_printer(msg,flag='info') 
-            logger.info()
-    
+
     
     # A small snippet for string comparison
     @staticmethod
