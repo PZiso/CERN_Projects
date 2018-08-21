@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[3]:
+# In[27]:
 
 import numpy as np
 
@@ -22,6 +22,22 @@ import logging
 
 #Sys needed for logging in Jupyter with StreamHandler..It can be removed for non-Jupyter platform
 from sys import stderr
+
+
+# In[46]:
+
+mpla=1.92389184812
+'He is '+str("%.3f"%mpla)
+
+
+# In[37]:
+
+'He is '+str(np.ceil(1.08777))
+
+
+# In[36]:
+
+print("%10.3f"% (1.08777))
 
 
 # In[7]:
@@ -379,7 +395,7 @@ class HTadjust(object):
             if flag_unstable:
                 my_message='After '+str(HTadjust_interval)+' minutes, ITF.BCT15 was measured but too unstable for adjustment.\n [GHOST:HTadjust]'
             else:
-                my_message='After '+str(HTadjust_interval)+' minutes, ITF.BCT15 was measured, change of HT from '+str(HT_start)+' to '+str(HT_new)+'. \nChanged ITF.BCT from '+str(linac_current_start['Mean'])+' to '+str(BCT15_new)+'\n[GHOST:HTadjust]'
+                my_message='After '+str(HTadjust_interval)+' minutes, ITF.BCT15 was measured, change of HT from '+str("%.3f"%HT_start)+' to '+str("%.3f"%HT_new)+'. \nChanged ITF.BCT from '+str("%.3f"%linac_current_start['Mean'])+' to '+str("%.3f"%BCT15_new)+'\n[GHOST:HTadjust]'
 
             elog.create_event(my_message)
             
