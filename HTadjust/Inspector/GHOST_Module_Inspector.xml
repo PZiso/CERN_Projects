@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<MonitorPanel AskForWritingConfirmation="true" BlinkingInterval="1300" GridSize="10" SnapToGrid="false" Title="GHOST Module_Inspector" UID="bf6bbe34-b52f-4417-bde3-df076391867d" WritingEnabled="true">
+<Panel Class="cern.ade.inspector.gui.monitors.containers.SimpleContainer">
+<Configuration AlertColor="255,100,100,255" BackgroundColor="69,70,64,255" BlinkerType="Disabled" BorderColor="0,0,0,255" MaxSize="2147483647,2147483647" MinSize="10,10" NormalColor="100,255,100,255" OffColor="100,100,100,255" Position="999,181" RangeType="Disabled" ReferenceValue="NaN" ResizedByUser="true" Rotation="0.0" ScaleX="1.0" ScaleY="1.0" Size="318,257" SizeRatio="0.0" TextColor="255,255,255,255" Title="device/property#field" UID="724de875-f3ad-47c8-bddf-ae5e1d2bbe33" WarningColor="225,225,60,255" XmlVersion="2" ZOrder="3"/>
+<Container PARENT="bf6bbe34-b52f-4417-bde3-df076391867d" POSITION="3,3" SIZE="312,251" UID="a8b81cf0-90bc-4d51-aff0-7bd8b3a7dd1a">
+<Monitor Class="cern.ade.inspector.gui.monitors.components.text.TextMonitor">
+<Configuration AlertColor="255,100,100,255" BackgroundColor="255,255,255,0" BlinkerType="Disabled" DecimalNumber="3" DecodedValue="false" EngineeringNotation="true" Font="Dialog#1#12" HexValue="false" MaxSize="1600,25" MaxValue="0.0" MinSize="40,25" MinValue="0.0" NormalColor="100,255,100,255" OffColor="100,100,100,255" Position="7,75" RangeType="Disabled" ReferenceValue="NaN" ResizedByUser="false" Rotation="0.0" ScaleX="1.0" ScaleY="1.0" Size="272,25" SizeRatio="0.0" TextAlignment="Right" TextColor="255,255,255,255" TextMonitorVersion="2.0" Title="GHOSTconfig/HTajust#HTadjust_kill" Type="TextMonitor" UID="d3003a55-3348-4ff2-9d6a-3c3c6a52d831" UseSIPrefixes="false" UserUnit="" WarningColor="225,225,60,255" XmlVersion="2" ZOrder="0">
+<RangeProperty Type="Element">
+<DataSubscriptionInfo ConvertToBitArray="false" DisplayName="GHOSTconfig/HTajust#HTadjust_kill" Index="-1" Information="" PrimaryDefaultType="NONE" SecondaryDefaultType="NONE" Type="ProxySubscriptionInfo">
+<PROPERTY_VALUE DEVICE_NAME="GHOSTconfig" FIELD_NAME="HTadjust_kill" FLAVOR="PROPERTY_VALUE" PROPERTY_NAME="HTajust" SELECTOR="NULL" VALUE_TYPE="BOOLEAN"/>
+</DataSubscriptionInfo>
+</RangeProperty>
+</Configuration>
+<Properties>
+<DataSubscriptionInfo ConvertToBitArray="false" DisplayName="GHOSTconfig/HTajust#HTadjust_kill" Index="-1" Information="" PrimaryDefaultType="NONE" SecondaryDefaultType="NONE" Type="ProxySubscriptionInfo">
+<PROPERTY_VALUE DEVICE_NAME="GHOSTconfig" FIELD_NAME="HTadjust_kill" FLAVOR="PROPERTY_VALUE" PROPERTY_NAME="HTajust" SELECTOR="NULL" VALUE_TYPE="BOOLEAN"/>
+</DataSubscriptionInfo>
+</Properties>
+</Monitor>
+<Monitor Class="cern.ade.inspector.gui.monitors.components.text.TextMonitor">
+<Configuration AlertColor="255,100,100,255" BackgroundColor="255,255,255,0" BlinkerType="Disabled" DecimalNumber="3" DecodedValue="false" EngineeringNotation="true" Font="Dialog#1#12" HexValue="false" MaxSize="1600,25" MaxValue="0.0" MinSize="40,25" MinValue="0.0" NormalColor="100,255,100,255" OffColor="100,100,100,255" Position="2,33" RangeType="Disabled" ReferenceValue="NaN" ResizedByUser="false" Rotation="0.0" ScaleX="1.0" ScaleY="1.0" Size="293,25" SizeRatio="0.0" TextAlignment="Right" TextColor="255,255,255,255" TextMonitorVersion="2.0" Title="GHOSTconfig/HTajust#HTadjust_inhibit" Type="TextMonitor" UID="c0c5b70f-b72e-4b84-9f35-8298263b5713" UseSIPrefixes="false" UserUnit="" WarningColor="225,225,60,255" XmlVersion="2" ZOrder="2">
+<RangeProperty Type="Element">
+<DataSubscriptionInfo ConvertToBitArray="false" DisplayName="GHOSTconfig/HTajust#HTadjust_inhibit" Index="-1" Information="" PrimaryDefaultType="NONE" SecondaryDefaultType="NONE" Type="ProxySubscriptionInfo">
+<PROPERTY_VALUE DEVICE_NAME="GHOSTconfig" FIELD_NAME="HTadjust_inhibit" FLAVOR="PROPERTY_VALUE" PROPERTY_NAME="HTajust" SELECTOR="NULL" VALUE_TYPE="BOOLEAN"/>
+</DataSubscriptionInfo>
+</RangeProperty>
+</Configuration>
+<Properties>
+<DataSubscriptionInfo ConvertToBitArray="false" DisplayName="GHOSTconfig/HTajust#HTadjust_inhibit" Index="-1" Information="" PrimaryDefaultType="NONE" SecondaryDefaultType="NONE" Type="ProxySubscriptionInfo">
+<PROPERTY_VALUE DEVICE_NAME="GHOSTconfig" FIELD_NAME="HTadjust_inhibit" FLAVOR="PROPERTY_VALUE" PROPERTY_NAME="HTajust" SELECTOR="NULL" VALUE_TYPE="BOOLEAN"/>
+</DataSubscriptionInfo>
+</Properties>
+</Monitor>
+<Monitor Class="cern.ade.inspector.gui.monitors.components.text.TextMonitor">
+<Configuration AlertColor="255,100,100,255" BackgroundColor="255,255,255,0" BlinkerType="Disabled" DecimalNumber="3" DecodedValue="false" EngineeringNotation="true" Font="Dialog#1#12" HexValue="false" MaxSize="1600,25" MaxValue="0.0" MinSize="40,25" MinValue="0.0" NormalColor="100,255,100,255" OffColor="100,100,100,255" Position="8,121" RangeType="Disabled" ReferenceValue="NaN" ResizedByUser="false" Rotation="0.0" ScaleX="1.0" ScaleY="1.0" Size="276,25" SizeRatio="0.0" TextAlignment="Right" TextColor="255,255,255,255" TextMonitorVersion="2.0" Title="GHOSTconfig/HTajust#HTadjust_test" Type="TextMonitor" UID="84049f7b-f498-4e22-ad0e-a3fb96001ff1" UseSIPrefixes="false" UserUnit="" WarningColor="225,225,60,255" XmlVersion="2" ZOrder="1">
+<RangeProperty Type="Element">
+<DataSubscriptionInfo ConvertToBitArray="false" DisplayName="GHOSTconfig/HTajust#HTadjust_test" Index="-1" Information="" PrimaryDefaultType="NONE" SecondaryDefaultType="NONE" Type="ProxySubscriptionInfo">
+<PROPERTY_VALUE DEVICE_NAME="GHOSTconfig" FIELD_NAME="HTadjust_test" FLAVOR="PROPERTY_VALUE" PROPERTY_NAME="HTajust" SELECTOR="NULL" VALUE_TYPE="BOOLEAN"/>
+</DataSubscriptionInfo>
+</RangeProperty>
+</Configuration>
+<Properties>
+<DataSubscriptionInfo ConvertToBitArray="false" DisplayName="GHOSTconfig/HTajust#HTadjust_test" Index="-1" Information="" PrimaryDefaultType="NONE" SecondaryDefaultType="NONE" Type="ProxySubscriptionInfo">
+<PROPERTY_VALUE DEVICE_NAME="GHOSTconfig" FIELD_NAME="HTadjust_test" FLAVOR="PROPERTY_VALUE" PROPERTY_NAME="HTajust" SELECTOR="NULL" VALUE_TYPE="BOOLEAN"/>
+</DataSubscriptionInfo>
+</Properties>
+</Monitor>
+<ContainerLabel>
+<Configuration Font="Dialog#0#12" HorizontalAlignment="false" MaxSize="1600,1200" MinSize="40,40" Position="0,0" ResizedByUser="false" Rotation="0.0" ScaleX="1.0" ScaleY="1.0" Size="175,23" SizeRatio="0.0" Text="HTadjust module controllers" TextColor="255,255,255,255" UID="5b2c19dd-9652-4412-8851-dbc570cc340e" VerticalAlignment="false" XmlVersion="2" ZOrder="3"/>
+</ContainerLabel>
+</Container>
+</Panel>
+<Panel Class="cern.ade.inspector.gui.monitors.containers.SimpleContainer">
+<Configuration AlertColor="255,100,100,255" BackgroundColor="22,168,41,196" BlinkerType="Disabled" BorderColor="0,0,0,255" MaxSize="2147483647,2147483647" MinSize="10,10" NormalColor="100,255,100,255" OffColor="100,100,100,255" Position="581,19" RangeType="Disabled" ReferenceValue="NaN" ResizedByUser="true" Rotation="0.0" ScaleX="1.0" ScaleY="1.0" Size="182,47" SizeRatio="0.0" TextColor="255,255,255,255" Title="device/property#field" UID="2c316d73-c921-43cd-9a4d-54eb5e7219e7" WarningColor="225,225,60,255" XmlVersion="2" ZOrder="0"/>
+<Container PARENT="bf6bbe34-b52f-4417-bde3-df076391867d" POSITION="3,3" SIZE="176,41" UID="fd8ea331-b362-4058-9293-13a74d4ced9d">
+<ContainerLabel>
+<Configuration Font="Dialog#0#20" HorizontalAlignment="false" MaxSize="1600,1200" MinSize="40,40" Position="5,5" ResizedByUser="false" Rotation="0.0" ScaleX="1.0" ScaleY="1.0" Size="154,27" SizeRatio="0.0" Text="GHOST Module" TextColor="255,255,255,255" UID="0691931d-765a-4062-83a9-0463868a82e2" VerticalAlignment="false" XmlVersion="2" ZOrder="0"/>
+</ContainerLabel>
+</Container>
+</Panel>
+<Monitor BUFFER_SIZE="200" Class="cern.ade.inspector.gui.monitors.components.chart.ChartMonitor" LEGEND_VISIBLE="true" Version="1">
+<Configuration AlertColor="255,100,100,255" BackgroundColor="255,255,255,0" BlinkerType="Disabled" MaxSize="1600,1200" MaxValue="0.0" MinSize="100,100" MinValue="0.0" NormalColor="100,255,100,255" OffColor="100,100,100,255" Position="16,463" RangeType="Disabled" ReferenceValue="NaN" ResizedByUser="true" Rotation="0.0" ScaleX="1.0" ScaleY="1.0" Size="761,412" SizeRatio="0.0" TextColor="255,255,255,255" Title="ITF.BCT15/Acquisition#currentLinacSingle" Type="ChartMonitor" UID="c28e10de-8208-44f8-958d-c843a50f59f4" WarningColor="225,225,60,255" XmlVersion="2" ZOrder="5" buff_siz="200" lgd_vis="true" sx_auto="true" sy_auto="true" x_max="1.534926029636E12" x_min="1.534918664001E12" y_max="0.20862086741253733" y_min="0.012389931175857783"/>
+<Properties>
+<DataSubscriptionInfo ConvertToBitArray="false" DisplayName="ITF.BCT15/Acquisition#currentLinacSingle" Index="-1" Information="" PrimaryDefaultType="NONE" SecondaryDefaultType="NONE" Type="ProxySubscriptionInfo">
+<PROPERTY_VALUE DEVICE_NAME="ITF.BCT15" FIELD_NAME="currentLinacSingle" FLAVOR="PROPERTY_VALUE" PROPERTY_NAME="Acquisition" SELECTOR="LEI.USER.MDEARLY" VALUE_TYPE="FLOAT"/>
+</DataSubscriptionInfo>
+</Properties>
+<PropertyDataSet ChartType="LINE_CIRCLE" Color="0,134,198,255" Gain="1.0" LegendName="ITF.BCT15/Acquisition#currentLinacSingle" OffsetX="0.0" OffsetY="0.0" SampleFrequency="1.0" xSpanMax="0.0" xSpanMin="0.0" ySpanMax="0.0" ySpanMin="0.0">
+<DataSubscriptionInfo ConvertToBitArray="false" DisplayName="ITF.BCT15/Acquisition#currentLinacSingle" Index="-1" Information="" PrimaryDefaultType="NONE" SecondaryDefaultType="NONE" Type="ProxySubscriptionInfo">
+<PROPERTY_VALUE DEVICE_NAME="ITF.BCT15" FIELD_NAME="currentLinacSingle" FLAVOR="PROPERTY_VALUE" PROPERTY_NAME="Acquisition" SELECTOR="LEI.USER.MDEARLY" VALUE_TYPE="FLOAT"/>
+</DataSubscriptionInfo>
+</PropertyDataSet>
+</Monitor>
+<Monitor Class="cern.ade.inspector.gui.monitors.components.gauge.GaugeMonitor">
+<Configuration AlertColor="255,100,100,255" AlertHighEnabled="true" AlertHighValue="0.9" AlertLowEnabled="true" AlertLowValue="0.1" BackgroundColor="255,255,255,0" BlinkerType="Disabled" DecimalNumber="1" EngineeringNotation="true" MaxSize="1600,1600" MaxValue="20.0" MinSize="100,100" MinValue="0.0" NormalColor="100,255,100,255" OffColor="100,100,100,255" Position="1224,610" RangeType="Interval" ReferenceValue="NaN" ResizedByUser="true" Rotation="0.0" ScaleX="1.0" ScaleY="1.0" Size="140,100" SizeRatio="1.4" TextColor="255,255,255,255" Title="HTadjust_Vrange" Type="GageMonitor" UID="db6033d0-eb0c-401f-97b4-80f81cd80b73" UseSIPrefixes="false" UserUnit="" WarningColor="225,225,60,255" WarningHighEnabled="true" WarningHighValue="0.8" WarningLowEnabled="true" WarningLowValue="0.2" XmlVersion="2" ZOrder="1">
+<RangeProperty Type="Element">
+<DataSubscriptionInfo ConvertToBitArray="false" DisplayName="GHOSTconfig/HTajust#HTadjust_Vrange" Index="-1" Information="" PrimaryDefaultType="NONE" SecondaryDefaultType="NONE" Type="ProxySubscriptionInfo">
+<PROPERTY_VALUE DEVICE_NAME="GHOSTconfig" FIELD_NAME="HTadjust_Vrange" FLAVOR="PROPERTY_VALUE" PROPERTY_NAME="HTajust" SELECTOR="NULL" VALUE_TYPE="BYTE"/>
+</DataSubscriptionInfo>
+</RangeProperty>
+</Configuration>
+<Properties>
+<DataSubscriptionInfo ConvertToBitArray="false" DisplayName="GHOSTconfig/HTajust#HTadjust_Vrange" Index="-1" Information="" PrimaryDefaultType="NONE" SecondaryDefaultType="NONE" Type="ProxySubscriptionInfo">
+<PROPERTY_VALUE DEVICE_NAME="GHOSTconfig" FIELD_NAME="HTadjust_Vrange" FLAVOR="PROPERTY_VALUE" PROPERTY_NAME="HTajust" SELECTOR="NULL" VALUE_TYPE="BYTE"/>
+</DataSubscriptionInfo>
+</Properties>
+</Monitor>
+<Monitor Class="cern.ade.inspector.gui.monitors.components.gauge.GaugeMonitor">
+<Configuration AlertColor="255,100,100,255" AlertHighEnabled="true" AlertHighValue="0.9" AlertLowEnabled="true" AlertLowValue="0.1" BackgroundColor="255,255,255,0" BlinkerType="Disabled" DecimalNumber="1" EngineeringNotation="true" MaxSize="1600,1600" MaxValue="200.0" MinSize="100,100" MinValue="0.0" NormalColor="100,255,100,255" OffColor="100,100,100,255" Position="840,619" RangeType="Interval" ReferenceValue="NaN" ResizedByUser="false" Rotation="0.0" ScaleX="1.0" ScaleY="1.0" Size="140,100" SizeRatio="1.4" TextColor="255,255,255,255" Title="HTadjust_intervall" Type="GageMonitor" UID="e014136d-73a6-4445-a72a-fd46c55876cd" UseSIPrefixes="false" UserUnit="" WarningColor="225,225,60,255" WarningHighEnabled="true" WarningHighValue="0.8" WarningLowEnabled="true" WarningLowValue="0.2" XmlVersion="2" ZOrder="2">
+<RangeProperty Type="Element">
+<DataSubscriptionInfo ConvertToBitArray="false" DisplayName="GHOSTconfig/HTajust#HTadjust_intervall" Index="-1" Information="" PrimaryDefaultType="NONE" SecondaryDefaultType="NONE" Type="ProxySubscriptionInfo">
+<PROPERTY_VALUE DEVICE_NAME="GHOSTconfig" FIELD_NAME="HTadjust_intervall" FLAVOR="PROPERTY_VALUE" PROPERTY_NAME="HTajust" SELECTOR="NULL" VALUE_TYPE="BYTE"/>
+</DataSubscriptionInfo>
+</RangeProperty>
+</Configuration>
+<Properties>
+<DataSubscriptionInfo ConvertToBitArray="false" DisplayName="GHOSTconfig/HTajust#HTadjust_intervall" Index="-1" Information="" PrimaryDefaultType="NONE" SecondaryDefaultType="NONE" Type="ProxySubscriptionInfo">
+<PROPERTY_VALUE DEVICE_NAME="GHOSTconfig" FIELD_NAME="HTadjust_intervall" FLAVOR="PROPERTY_VALUE" PROPERTY_NAME="HTajust" SELECTOR="NULL" VALUE_TYPE="BYTE"/>
+</DataSubscriptionInfo>
+</Properties>
+</Monitor>
+<Monitor Class="cern.ade.inspector.gui.monitors.components.gauge.GaugeMonitor">
+<Configuration AlertColor="255,100,100,255" AlertHighEnabled="true" AlertHighValue="0.9" AlertLowEnabled="true" AlertLowValue="0.1" BackgroundColor="255,255,255,0" BlinkerType="Disabled" DecimalNumber="3" EngineeringNotation="true" MaxSize="1600,1600" MaxValue="25000.0" MinSize="100,100" MinValue="0.0" NormalColor="100,255,100,255" OffColor="100,100,100,255" Position="986,633" RangeType="Interval" ReferenceValue="NaN" ResizedByUser="true" Rotation="0.0" ScaleX="1.0" ScaleY="1.0" Size="217,155" SizeRatio="1.4" TextColor="255,255,255,255" Title="sourceHT" Type="GageMonitor" UID="6041f11d-282c-496e-be48-7e42d2dde644" UseSIPrefixes="false" UserUnit="" WarningColor="225,225,60,255" WarningHighEnabled="true" WarningHighValue="0.8" WarningLowEnabled="true" WarningLowValue="0.2" XmlVersion="2" ZOrder="4">
+<RangeProperty Type="Element">
+<DataSubscriptionInfo ConvertToBitArray="false" DisplayName="IP.NSRCGEN/Setting#sourceHT" Index="-1" Information="" PrimaryDefaultType="NONE" SecondaryDefaultType="NONE" Type="ProxySubscriptionInfo">
+<PROPERTY_VALUE DEVICE_NAME="IP.NSRCGEN" FIELD_NAME="sourceHT" FLAVOR="PROPERTY_VALUE" PROPERTY_NAME="Setting" SELECTOR="NULL" VALUE_TYPE="FLOAT"/>
+</DataSubscriptionInfo>
+</RangeProperty>
+</Configuration>
+<Properties>
+<DataSubscriptionInfo ConvertToBitArray="false" DisplayName="IP.NSRCGEN/Setting#sourceHT" Index="-1" Information="" PrimaryDefaultType="NONE" SecondaryDefaultType="NONE" Type="ProxySubscriptionInfo">
+<PROPERTY_VALUE DEVICE_NAME="IP.NSRCGEN" FIELD_NAME="sourceHT" FLAVOR="PROPERTY_VALUE" PROPERTY_NAME="Setting" SELECTOR="NULL" VALUE_TYPE="FLOAT"/>
+</DataSubscriptionInfo>
+</Properties>
+</Monitor>
+</MonitorPanel>
