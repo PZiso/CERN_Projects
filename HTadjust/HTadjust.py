@@ -5,7 +5,7 @@ import numpy as np
 import pyjapc
  
 # Time module for sleeping
-from time import sleep, strftime
+from time import sleep
 
 #PyLogBook to push events to the eLogbook
 import pylogbook
@@ -16,8 +16,9 @@ import logging
 # For logging with time-stamp
 import datetime
 
-#Sys needed for logging in Jupyter with StreamHandler..It can be removed for non-Jupyter platform
-from sys import stderr,exit
+#Sys.exit needed for killing the module
+from sys import exit
+
 
 
 class HTadjust(object):
@@ -35,7 +36,7 @@ class HTadjust(object):
     def __init__(self,FESA_GHOST_Device='GHOSTconfig',FESA_GHOST_Property='HTajust',
                  simulate_SET=True,INCA_ACCEL='LEIR',sourceHT_selector=None,
                  BCT15_selector='LEI.USER.ALL',which_ebook='TESTS',
-                 no_elog_write=False,log_me=True,log_level='DEBUG'):
+                 no_elog_write=False,log_me=True,log_level='DEBUG',print_activity=False):
         """
         Initialisation of the HTadjust module. The input parameters are:
         
@@ -85,56 +86,17 @@ class HTadjust(object):
         self.no_elog_write=no_elog_write
         
         self.log_me=log_me
+
+        self.print_activity=print_activity
         
         self.__author__='P. Zisopoulos (pzisopou@cern.ch)'
         
-        self.__version__='v.1.3'
+        self.__version__='v.1.4'
         
     
         
-    def my_stopper(self,flag='initial'):
-        """ Function to terminate the HTadjust module by checking the HTadjust_kill flag.
-
-            The termination of the HTadjust modulde is performed with the help of the sys.exit() function.
-
-            When flag='initial' some useful info are printed out, for the begininning of the execution of the code.
-            If flag='' there is not print out from the code and this mode is used when the function is called 
-            in other places in the code. 
-
-        """
-        
-        
-        
-        if flag=='initial':
-            verbose=1
-        else:
-            verbose=0
-        
-        
-        
-        if verbose:
-            msg='Checking HTadjust_kill flag.\n'
-            self.logger_or_printer(message=msg,flag='info')
-
-        signum=self.get_HTadjust('kill')
-
-        if signum:
-            
-            msg='Terminating HTadjust module: Kill flag raised by the user.\n'
-            self.logger_or_printer(message=msg,flag='info')
-            self.write_L3_logbook(flag_unstable=1,msg=msg)
-            
-            exit(msg)
-        
-        else:
-            
-            if verbose:
-                msg='HTadjust_kill checked. Running HTadjust module.\n'
-                self.logger_or_printer(message=msg,flag='info')
-                self.write_L3_logbook(flag_unstable=1,msg=msg)
-                
-
-            return
+#                                              FUNCTION DEFINITIONS 
+# *--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--* #
         
         
         
@@ -144,9 +106,10 @@ class HTadjust(object):
                            incaAcceleratorName=INCA_ACCEL,noSet=simulate_SET) 
         """
 
-        global japc
+        
         japc=pyjapc.PyJapc(selector=self.sourceHT_selector,
                            incaAcceleratorName=self.INCA_ACCEL,noSet=self.simulate_SET,logLevel=log) 
+        return japc
 
     def initiate_elogbook(self):
         """
@@ -154,8 +117,23 @@ class HTadjust(object):
         pylogbook.eLogbook(which_ebook)
         
         """
-        global elog
+        def elog_checker():
+            
+            elog_temp=pylogbook.eLogbook('TESTS')
+            try:
+                elog_temp.create_event('HTadjust test elogbook functionality.')
+            except:
+                self.no_elog_write=True
+                msg=('Cannot push events to the OP logbook. ' + 
+                    ' Problem with pylogbook module. Reverting to local logging only.')
+                logger.info(msg)
+
+        elog_checker()
+
         elog=pylogbook.eLogbook(self.which_ebook)
+        return elog
+
+
     
     def initiate_logger(self):
         """
@@ -166,7 +144,7 @@ class HTadjust(object):
         """
         if self.log_me:
 
-            global logger
+            
             ttl='{:%Y-%m-%d_%H_%M_%S}'.format(datetime.datetime.now())
             dir_='../log/'
             file_name=dir_+'HTadjust_'+ttl+'.log'
@@ -174,24 +152,53 @@ class HTadjust(object):
             logger = logging.getLogger('HTadjust')
             lvl=logging.getLevelName(self.log_level)
             logger.setLevel(lvl)
-             # Create STDERR handler
-            handler_stream = logging.StreamHandler(stderr)
-            handler_logfile=logging.FileHandler(file_name,mode='w')
 
-            # ch.setLevel(logging.DEBUG)
+            handler_logfile=logging.FileHandler(file_name,mode='w')
 
             # Create formatter and add it to the handler
             formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
             handler_logfile.setFormatter(formatter)
 
-            # Set STDERR handler as the only handler 
-            logger.handlers = [handler_stream,handler_logfile]
+            logger.handlers = [handler_logfile]
+
+            return logger
         
         else:
 
-            pass
+            return []
 
-     
+
+
+# *--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--* #
+    
+    def start_HTadjust(self):
+
+        global logger, japc, elog
+
+
+        logger=self.initiate_logger()   
+
+        japc=self.initiate_JAPC()# Change pseudo_set to False to escape simulation mode for SET action
+       
+        elog=self.initiate_elogbook() # which_ebook: LINAC 3  
+
+
+        if self.simulate_SET:
+
+            msg='******Initiating HTadjust module in Simulation Mode. No SET operations will be performed******'
+
+        else:
+
+            msg='******Initiating HTadjust module.******'
+
+        
+        self.write_L3_log(msg=msg,where='both logs',logfile_lvl='info')
+
+
+
+
+# *--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--* #
+
     
     def logger_or_printer(self,message,flag):
         """
@@ -201,11 +208,12 @@ class HTadjust(object):
         
         """
         
-    
-        if self.log_me:
-            
-            lvl=self.log_level
-            
+        lvl=self.log_level
+
+        print_me=self.print_activity
+
+        if not print_me:   
+
             if (lvl=='INFO') and (flag=='info'):
                 logger.info(message)
             elif (lvl=='DEBUG') and (flag=='debug'):
@@ -218,11 +226,59 @@ class HTadjust(object):
                 logger.critical(message)
 
         else:
-            
-#             logger.info('Logging suppressed by the user.\n')
-            print('Log of HTadjust activity suppressed by the user. Message: '+message)
 
-                
+            print(message)
+
+
+# *--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--* #
+
+
+    def write_L3_log(self,msg,where,logfile_lvl='info'):
+        """
+        Method to write predefined messages to the elogbook. The elogbook is defined from the user
+        at the instantation of the HTadjust module. The action of writing to the elogbook can be 
+        suppressed with the no_elog_write flag. The messages are also written in the local log file in case the 
+        log_me flag=True in the class of HTadjust module.
+        
+        flag_unstable: If True, the function pushes a predefined event, written for the case of unstable measurement conditions to the elogbook and logbook.
+                       If False, a predefined message for stablem easurement conditions is written in both logbooks.
+
+        msg:           Default value of this string is empty. If not empty, the function will push this message to the logbooks. In other words, this variable overrides
+                       the predefined messages explained in the previous parameter.
+        
+        """
+        my_str=('Wrong input to log function. Choose where to log the message between' +
+            '"logfile" for local logging,"logbook" for logging in the OP logbook or both with "both logs".')
+            
+        
+        assert where in ['logfile','logbook','both logs'], my_str
+
+        if where=='logfile':
+
+            if self.log_me:
+            
+                self.logger_or_printer(message=msg,flag=logfile_lvl) 
+
+        elif where=='logbook':
+
+            if not self.no_elog_write: 
+
+                elog.create_event(msg+'\n[GHOST:HTadjust]')
+
+        else:
+
+            if self.log_me:
+
+                self.logger_or_printer(message=msg,flag=logfile_lvl)
+
+            if not self.no_elog_write:
+
+                elog.create_event(msg+'\n[GHOST:HTadjust]')
+
+
+
+# *--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--* #
+       
     def get_HTadjust(self,HTadjust_input):
         
         """
@@ -244,8 +300,10 @@ class HTadjust(object):
 
         except:
 
-            msg='There seems to be a problem communicating with the FEC. No GET action is possible. Aborting.\n'
-            self.logger_or_printer(msg,flag='error')
+            msg=("There seems to be a problem communicating with the FEC." + 
+                " No GET action is possible. Aborting.")
+            
+            self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
             raise ValueError(msg)
 
 
@@ -270,16 +328,18 @@ class HTadjust(object):
             map_params=japc.getParam(my_field)
             map_params[param_full_name]=val_to_set
             japc.setParam(my_field,map_params)
-            msg='Setting %s#%s parameter to value %s.\n'%(my_field,param_full_name,val_to_set)
-            self.logger_or_printer(message=msg,flag='info')
+            msg='Setting %s#%s parameter to value %s.'%(my_field,param_full_name,val_to_set)
+            self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
         except:
 
-            msg='There seems to be a problem communicating with the FEC. Aborting SET action.\n'
-            self.logger_or_printer(msg,flag='error')
+            msg=("There seems to be a problem communicating with the FEC." + 
+                " No SET action is possible. Aborting.")
+            self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
             raise ValueError(msg)    
 
     
+# *--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--* #
     
            
     def get_my_JAPC_parameter(self,device,field,parameter,my_selector=None,no_shots=10,subscribe_=1,basic_per=1.2,verbose=True):
@@ -318,8 +378,6 @@ class HTadjust(object):
 
         """
         
-        self.my_stopper(flag='')
-
         my_constructor=device+'/'+field+'#'+parameter
         global ind_
         
@@ -345,14 +403,14 @@ class HTadjust(object):
             #     param.append(newValue)
                 if not headerInfo['isFirstUpdate']:
                     param.append(newValue)
-                    msg="({0}) Measured value for {1} is: {2}\n".format(ind_,parameterName, "%.3f"%newValue)
+                    msg="({0}) Measured value for {1} is: {2}".format(ind_,parameterName, "%.3f"%newValue)
                     if verbose:
-                        self.logger_or_printer(message=msg,flag='info')
+                        self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
                     ind_+=1
 
             japc.setSelector(my_selector)
-            msg=my_constructor+' measurement: Assigning selector-> '+str(my_selector)+'.\n'
-            self.logger_or_printer(message=msg,flag='info')
+            msg=my_constructor+' measurement: Assigning selector-> '+str(my_selector)+'.'
+            self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
             japc.subscribeParam(my_constructor, newValueCallback, getHeader=True)
             japc.startSubscriptions()
@@ -373,19 +431,19 @@ class HTadjust(object):
             
             param=[]
             ind_=1
-            msg="Manual JAPC Measurement Mode: Waiting for "+str(basic_per)+" seconds for each measurement.\n"
-            self.logger_or_printer(message=msg,flag='info')
+            # msg="Manual JAPC Measurement Mode: Waiting for "+str(basic_per)+" seconds for each measurement."
+            # self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info',print_me=False)
             
             japc.setSelector(my_selector)
-            msg=my_constructor+' measurement: Assigning selector-> '+str(my_selector)+'.\n'
-            self.logger_or_printer(message=msg,flag='info')
+            msg=my_constructor+' measurement: Assigning selector-> '+str(my_selector)+'.'
+            self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
             
             for k in range(no_shots):
                 newValue=japc.getParam(my_constructor)
                 param.append(newValue)
-                msg="("+str(ind_)+") Measured value for {0} is: {1}\n".format(my_constructor, "%.3f"%newValue)
+                msg="({0}) Measured value for {1} is: {2}".format(ind_,my_constructor, "%.3f"%newValue)
                 if verbose:
-                    self.logger_or_printer(message=msg,flag='info')
+                    self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
                 sleep(basic_per)
                 ind_+=1
                 japc.stopSubscriptions()
@@ -425,9 +483,7 @@ class HTadjust(object):
         the parameter device/field#parameter. (the name construction follows the JAPC rules)
         
         """
-        
-        self.my_stopper(flag='')
-        
+                
         my_constructor=device+'/'+field
         japc.setSelector(my_selector)
         dic_FESA=japc.getParam(my_constructor)
@@ -445,78 +501,24 @@ class HTadjust(object):
             try:
             
                 japc.setParam(my_constructor,dic_FESA)
-                msg='Setting '+my_constructor+'#'+parameter+' parameter to value '+str(val_to_set)+'.\n'
-                self.logger_or_printer(message=msg,flag='info')
+                msg='Setting '+my_constructor+'#'+parameter+' parameter to value '+str(val_to_set)+'.'
+                self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+
             except:
-                msg='Unable to set '+my_constructor+'#'+parameter+' parameter to value '+str(val_to_set)
-                self.logger_or_printer(msg,flag='error')
-                raise ValueError('Unable to set '+my_constructor+'#'+parameter+' parameter to value '+
-                                 str(val_to_set))
+
+                msg='Unable to set '+my_constructor+'#'+parameter+' parameter to value '+str(val_to_set)+'.'
+                self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+                raise ValueError(msg)
         
         else:
-            msg=('Given value to SET is outside safe operating range (Limit->['+str(lim_l)+' '+str(lim_r)+']) . Aborting SET for parameter '
-            +my_constructor+'#'+parameter+'.\n')
+
+            msg=('Given value to SET is outside safe operating range (Limit->' +
+                '[{0},{1}]. Aborting SET operation for {2}.').format(lim_l,lim_r,my_constructor+'#'+parameter)
             
-            self.logger_or_printer(msg,flag='info')
+            self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
             
-            
-                
 
-                    
-         
-        
-    
-    def write_L3_logbook(self,flag_unstable,msg=''):
-        """
-        Method to write predefined messages to the elogbook. The elogbook is defined from the user
-        at the instantation of the HTadjust module. The action of writing to the elogbook can be 
-        suppressed with the no_elog_write flag. The messages are also written in the local log file in case the 
-        log_me flag=True in the class of HTadjust module.
-        
-        flag_unstable: If True, the function pushes a predefined event, written for the case of unstable measurement conditions to the elogbook and logbook.
-                       If False, a predefined message for stablem easurement conditions is written in both logbooks.
-
-        msg:           Default value of this string is empty. If not empty, the function will push this message to the logbooks. In other words, this variable overrides
-                       the predefined messages explained in the previous parameter.
-        
-        """
-        if flag_unstable and not msg:
-            # my_message=('After '+str(HTadjust_interval)+
-            # ' minutes, ITF.BCT15 was measured but too unstable for adjustment.\n [GHOST:HTadjust]')
-            my_message='Unstable conditions. No adjustments were performed.\n\n[GHOST:HTadjust]' 
-        elif not flag_unstable and not msg:
-            # my_message=('After '+str(HTadjust_interval)+
-            # ' minutes, ITF.BCT15 was measured, change of HT from '+str("%d"%HT_start)+
-            # ' to '+str("%d"%HT_new)+'. \nChanged ITF.BCT from '+str("%.3f"%linac_current_start['Mean'])+
-            # ' to '+str("%.3f"%BCT15_new)+'\n[GHOST:HTadjust]')
-            my_message='HT extracting voltage [V]: {0}-->{1}\n\nBCT15 I [mA]: {2}-->{3}\n\n[GHOST:HTadjust]'.format(HT_start,HT_new,"%.3f"%linac_current_start['Mean'],"%.3f"%BCT15_new)
-        
-        elif msg:
-
-            my_message=msg
-
-        else:
-
-            raise ValueError('Wrong combination of input parameters in write_L3_logbook function.')
-
-        
-        if not self.no_elog_write: 
-        
-            elog.create_event(my_message+'\n[GHOST:HTadjust]')
-            
-            if self.log_me:
-                msg='New entry in eLogBook: '+my_message+'.\n'
-            
-                self.logger_or_printer(message=msg,flag='info')
-
-        else:
-
-            if self.log_me:
-                m1='E-log activity suppressed :\n'
-                self.logger_or_printer(m1, flag='info')
-                self.logger_or_printer(my_message, flag='info')
-
-
+# *--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--* #
 
         
     def wait_HTadjust_interval(self,time_knob=0):
@@ -537,46 +539,45 @@ class HTadjust(object):
         
         """
         
-        global HTadjust_interval, HTadjust_kill
+        global HTadjust_interval
 
         HTadjust_interval=self.get_HTadjust('intervall') # This is in minutes !
         
         if not time_knob:
-            msg='End of module. Waiting for '+str(HTadjust_interval)+' minutes.\n'
+
+            msg='End of current iteration. Waiting for '+str(HTadjust_interval)+' minutes.'
             
-            self.logger_or_printer(message=msg,flag='info')
-            self.write_L3_logbook(flag_unstable=1,msg=msg+'[GHOST:HTadjust]')
+            self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
              
             m=1
             while m<=HTadjust_interval*60:
                 
-                self.my_stopper(flag='')
+                self.my_stopper(flag='',set_Vinit=True)
                 sleep(1)# Input in seconds
                 m+=1
             
         else:
             
-            msg='End of module. User defined sleep time. Waiting for '+str(time_knob)+' seconds.\n'
-            self.logger_or_printer(message=msg,flag='info')
-            self.write_L3_logbook(flag_unstable=1,msg=msg+'[GHOST:HTadjust]')
+            msg='End of current iteration. User defined sleep time. Waiting for {} seconds.'.format(time_knob)
+            self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+            
          
             
             m=1
             while m<=time_knob:
                 
-                self.my_stopper(flag='')
+                self.my_stopper(flag='',set_Vinit=True)
                 sleep(1)# Input in seconds
                 m+=1
-        msg='Restarting HTadjust Module. Acquiring new value for the HTadjust_kill flag.\n'
-        self.logger_or_printer(message=msg,flag='info')
-        self.write_L3_logbook(flag_unstable=1,msg=msg+'[GHOST:HTadjust]') 
 
-        HTadjust_kill=self.get_HTadjust('kill')
+        msg='Proceeding with next iteration. Acquiring new value for the HTadjust_kill flag.'
+        self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+
     
-    
-    
-    def HT_Linac_Current_Decider(self,linac_current,new_value_SRCVOLT,safe_volt_low,safe_volt_high,shot_number=10):
+# *--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--* #
+
+    def HT_Current_Measurements(self,shot_number):
         
         """
         *** inputs:
@@ -624,74 +625,158 @@ class HTadjust(object):
         }
         
         """
-        global second_round
-        self.my_stopper(flag='')
-        status=1
-        while linac_current['Sigma']>0.1*linac_current['Mean']:
-            msg='Unstable conditions of BCT15 current measurement. Checking if this is the first round.\n'
-            self.logger_or_printer(message=msg,flag='info')
-            
-            if second_round:
-                msg='This is the second round. The current measurement from BCT15 is too unstable. Writing to eLogbook.\n'
-                
-                self.logger_or_printer(message=msg,flag='info')
-                
-                self.write_L3_logbook(flag_unstable=True,msg='')
 
-                if not HTadjust_test:
-                    msg='This is not a test! Due to unstable conditions,the HT voltage is set to the initial value.\n'
-                    self.logger_or_printer(message=msg,flag='info')
-                    self.set_my_JAPC_parameter(device='IP.NSRCGEN',field='Setting',
-                                               parameter='sourceHT',val_to_set=HT_start,
-                                               lim_l=safe_volt_low,lim_r=safe_volt_high,my_selector=None) 
-                else:
-                    msg='This is a test. No SET operation on-going.\n'
-                    self.logger_or_printer(message=msg,flag='info')
+        status=1 
 
-                #msg='End of module. Waiting for new time interval for HT adjust.\n'
-                #self.logger_or_printer(message=msg,flag='info')
-                status=0
-                break
-#                 self.wait_HTadjust_interval(time_knob=dummy_wait_time)
-                
+        for round_ in ['First','Second']:
 
-            else:
+            msg=round_+' round of BCT15 measurements'
+            self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
-                msg='This is the first round of measurement.\n'
-                self.logger_or_printer(message=msg,flag='info')
-                
-                second_round=True
-                
-                msg='Measuring the current in the Linac for a second round.\n'
-                self.logger_or_printer(message=msg,flag='info')
-
-                linac_current=self.get_my_JAPC_parameter(device="ITF.BCT15",field='Acquisition',
+            BCT15=self.get_my_JAPC_parameter(device="ITF.BCT15",field='Acquisition',
                                                          parameter='currentLinacSingle',
-                                                         my_selector=self.BCT15_selector,no_shots=shot_number)
+                                                         my_selector=self.BCT15_selector,
+                                                         no_shots=shot_number)
+
+            my_condition=BCT15['Sigma']>0.1*BCT15['Mean']
+
+            if my_condition and round_=='First':
+
+                msg='First round: Unstable conditions in the BCT15 measurements.'
+                self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+
+            elif my_condition and round_=='Second':
+                msg='Second round: Unstable conditions in the BCT15 measurements.'
+                self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+
+                msg='Not possible to adjust the HT voltage. Setting the HT voltage to the initial value.'
+                self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+
+                status=0
+           
+
+            elif not my_condition:    
+
                 
-                msg='Selector for BCT15 measurement-> '+self.BCT15_selector+'.\n'
-                
-                self.logger_or_printer(message=msg,flag='info')
-                
+                break #EXIT the for loop
+
+        return status,BCT15
 
 
-        else:    
+# *--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--* #
 
-            if not HTadjust_test:
-                msg='Stable conditions. This is not a test! Forwarding SET request and adjusting the HT voltage within Vrange.\n'
-                self.logger_or_printer(message=msg,flag='info')
-                self.set_my_JAPC_parameter(device='IP.NSRCGEN',
-                                           field='Setting',parameter='sourceHT',
-                                           val_to_set=new_value_SRCVOLT,lim_l=safe_volt_low,lim_r=safe_volt_high)
-                
+
+    def HT_Decider(self,BCT15_all,HT_start,HTadjust_vrange):
+
+
+        if BCT15_all['Positive'] > BCT15_all['Start']:
+
+            msg='Current p larger than current start.'
+            self.write_L3_log(msg=msg,where='logfile',logfile_lvl='debug')
+
+            if BCT15_all['Positive'] > BCT15_all['Negative']:
+                msg='Current p larger than current m.'
+                self.write_L3_log(msg=msg,where='logfile',logfile_lvl='debug')
+
+                HT_new=HT_start+HTadjust_vrange
+                BCT15_new=BCT15_all['Positive']
+
+            elif BCT15_all['Negative'] > BCT15_all['Start']:
+
+                msg='Current m larger than current start.'
+                self.write_L3_log(msg=msg,where='logfile',logfile_lvl='debug')
+
+                HT_new=HT_start-HTadjust_vrange
+                BCT15_new=BCT15_all['Negative']
+            
             else:
-                msg='This is a test. No SET operation on-going.\n'
-                self.logger_or_printer(message=msg,flag='info')
-         
-        return status
+
+                msg='Setting HT_new and BCT_new to their initial values.'
+                self.write_L3_log(msg=msg,where='logfile',logfile_lvl='debug')
+
+                HT_new=HT_start
+                BCT15_new=BCT15_all['Start'] # This is not in the flowchart..should it be inside ?
+
+
+
+        elif BCT15_all['Negative']> BCT15_all['Start']:
+            msg='Current m larger than current start.'
+            self.write_L3_log(msg=msg,where='logfile',logfile_lvl='debug')
+
+            HT_new=HT_start-HTadjust_vrange
+            BCT15_new=BCT15_all['Negative']
+
+        else:
+
+            msg='Setting HT_new and BCT_new to their initial values.'
+            self.write_L3_log(msg=msg,where='logfile',logfile_lvl='debug')
+
+            HT_new=HT_start
+            BCT15_new=BCT15_all['Start'] # This is not in the flowchart..should it be inside ?
+
+        return HT_new, BCT15_new
+
+# *--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--* #
+
+
+    def my_stopper(self,flag='initial',set_Vinit=False):
+        """ Function to terminate the HTadjust module by checking the HTadjust_kill flag.
+
+            The termination of the HTadjust modulde is performed with the help of the sys.exit() function.
+
+            When flag='initial' some useful info are printed out, for the begininning of the execution of the code.
+            If flag='' there is not print out from the code and this mode is used when the function is called 
+            in other places in the code. 
+
+        """
+        
+        
+        
+        if flag=='initial':
+            verbose=1
+        else:
+            verbose=0
+        
+        
+        
+        if verbose:
+            msg='Checking HTadjust_kill flag.'
+            self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+
+        signum=self.get_HTadjust('kill')
+
+        if signum:
+            
+            msg="""Terminating HTadjust module: Kill flag raised by the user."""
+            self.write_L3_log(msg=msg,where='both logs',logfile_lvl='info')
+
+            if set_Vinit:
+
+                msg='Setting the HT extraction voltage to the initial value. ({} V)'.format(HT_start)
+                self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+
+                self.set_my_JAPC_parameter(self,device='IP.NSRCGEN',field='Setting',parameter='sourceHT',
+                val_to_set=HT_start,lim_l=safe_volt_low,lim_r=safe_volt_high)
+            
+            exit(msg)# Exit from the module
+        
+        else:
+            
+            if verbose:
+                msg='HTadjust_kill checked. Running HTadjust module.'
+                self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')                
+
+            return
+
+
+
+#                                                 MAIN FUNCTION
+# *--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--* #
+
+
 
    
-    def run(self,dummy_wait_time=10,shot_number=10):
+    def run(self,dummy_wait_time,shot_number=10):
         """
         The main function of the HTadjust module. It executes the HTadjust module based on the user's input.
         
@@ -797,67 +882,38 @@ class HTadjust(object):
         }
         """
         
-        
-        #this line here should change at some point.
-        global BCT15_new, linac_current_start, HT_new, HT_start
-        global second_round, HTadjust_kill, HTadjust_interval,HTadjust_inhibit
-        global HTadjust_vrange,HTadjust_test
-        
+        global HT_start, safe_volt_low, safe_volt_high
 
-        self.initiate_logger()   
-        self.initiate_JAPC()# Change pseudo_set to False to escape simulation mode for SET action
-        self.initiate_elogbook() # Current issuing on TESTS logbook
-        
+   
         # Hard-coded values for HT voltage operation range
         safe_volt_low=19040
         safe_volt_high=19100
-
-        if self.simulate_SET:
-
-            msg='******Initiating HTadjust module in Simulation Mode. No SET operations will be performed******\n'
-            self.logger_or_printer(message=msg,flag='info')
-            self.write_L3_logbook(flag_unstable=1,msg=msg)
-
-        else:
-
-            msg='******Initiating HTadjust module.******\n'
-            self.logger_or_printer(message=msg,flag='info')
-            self.write_L3_logbook(flag_unstable=1,msg=msg)
-
-
-
-
-        msg='Dummy wait time is: '+str(dummy_wait_time)+'.\n'
-        self.logger_or_printer(message=msg,flag='debug')
-
-        msg='Initiating JAPC, E-Logbook and HTadjust logger.\n'
-        self.logger_or_printer(message=msg,flag='debug')
-   
-
         
+
+        self.start_HTadjust() # Initiate loggers, pyJAPC 
 
         #Infinite loop module !
         while True:
 
-            msg='Acquiring HTadjust_interval.\n'
-            self.logger_or_printer(msg,flag='debug')
 
-            HTadjust_interval=self.get_HTadjust('intervall')
+            HTadjust_interval=self.get_HTadjust('intervall') # Get HTadjust_interval
 
-            msg='Elapsed time from last HT adjustment is '+str(HTadjust_interval)+' minutes.\n'
-            self.logger_or_printer(message=msg,flag='info')
+            msg='HTadjust_interval is {} minutes'.format(HTadjust_interval)
+            self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
 
-            self.my_stopper(flag='initial')
-
-            msg='Acquiring HTadjust_inhibit.\n'
-            self.logger_or_printer(msg,flag='debug')
+            self.my_stopper(flag='initial') # Check kill flag
 
             HTadjust_inhibit=self.get_HTadjust('inhibit')
 
-            msg='The inhibit flag is: '+str(HTadjust_inhibit)+'.\n'
-            self.logger_or_printer(message=msg,flag='info')
+            msg='HTadjust_inhbit is: '+str(HTadjust_inhibit)+'.'
+            self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
             
+            HTadjust_test=self.get_HTadjust('test')
+
+            msg='HTadjust_test is: '+str(HTadjust_inhibit)+'.'
+            self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+
             
             #Check inhbit flag !
             if not HTadjust_inhibit:
@@ -867,249 +923,203 @@ class HTadjust(object):
                 HT_status=japc.getParam('IP.NSRCGEN/Status#sourceHTStatus')
 
                 if not HT_status[0]==2:
-                    msg="The status of the source is {}. Waiting 1 minute for the status to become ON and restarting.\n".format(HT_status[1])
-                    self.logger_or_printer(message=msg,flag='info')
-                    sleep(60)
+                    
+                    msg=('The status of the source is {0}. ' + 
+                        'Waiting for {1} minutes.').format(HT_status[1],HTadjust_interval)
+
+                    self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+                    
+                    self.wait_HTadjust_interval(time_knob=dummy_wait_time)
+                    
                     continue
+                
                 else:
-                    msg="The status of the source is {}. Proceeding with HTadjust operations.\n".format(HT_status[1])
-                    self.logger_or_printer(message=msg,flag='info')
+                    msg=('The status of the source is {}. ' + 
+                        'Proceeding with HTadjust operations.').format(HT_status[1])
+
+                    self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
                     pass
 
                 # Begin main sequence.
-                msg='Acquiring HTadjust_test.\n'
-                self.logger_or_printer(msg,flag='debug')
-
-                HTadjust_test=self.get_HTadjust('test')
-
-                msg='HTadjust_test checked. The test flag is: '+str(HTadjust_test)+'.\n'
-                self.logger_or_printer(msg,flag='debug')
-
-                msg='Acquiring HTadjust_Vrange.\n'
-                self.logger_or_printer(message=msg,flag='info')
+ 
 
                 HTadjust_vrange=self.get_HTadjust('Vrange')
 
-                msg='The HT voltage will be adjusted within a +/- '+str(HTadjust_vrange)+' V range.\n'
-                self.logger_or_printer(message=msg,flag='info')
+                msg='The HT voltage will be adjusted within a +/- '+str(HTadjust_vrange)+' V range.'
+                self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
-                msg='Acquiring source HT voltage.\n'
-                self.logger_or_printer(message=msg,flag='info')
+                msg='Acquiring source HT voltage.'
+                self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
-                HT_start=self.get_my_JAPC_parameter(device="IP.NSRCGEN",field="Setting",
-                                                    parameter='sourceHT',my_selector=None,subscribe_=0,no_shots=1)['Mean']
+                HT_start=self.get_my_JAPC_parameter(device="IP.NSRCGEN",
+                    field="Setting",parameter='sourceHT',my_selector=None,subscribe_=0,no_shots=1)['Mean']
 
-                msg='The current HT voltage is '+str(HT_start)+' Volts.\n'
+                msg='The source HT voltage is '+str(HT_start)+' V.'
+                self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
-                self.logger_or_printer(message=msg,flag='info')
-
-                second_round=False #1
 
                 #Do a first current measurement and examine if it is above or below the threshold
 
-                Init_BCT=self.get_my_JAPC_parameter(device="ITF.BCT15",field='Acquisition',parameter='currentLinacSingle',my_selector=self.BCT15_selector,no_shots=1,subscribe_=1,verbose=False)['Mean']
-                msg='Initial ion beam current measurement is {}\n'.format("%.3f"%Init_BCT)
-                self.logger_or_printer(message=msg,flag='info')
+                Init_BCT=self.get_my_JAPC_parameter(device="ITF.BCT15",
+                    field='Acquisition',parameter='currentLinacSingle',
+                    my_selector=self.BCT15_selector,no_shots=1,subscribe_=1,verbose=False)['Mean']
 
-                # Decide whether to proceed or not.
+                msg='Initial ion beam current measurement is {}'.format("%.3f"%Init_BCT)
+                self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+
+                # Is the current enough? Decide whether to proceed or not.
                 if Init_BCT<0.01:
-                    msg="The measurement of the BCT15 currentLinacSingle is below threshold (0.01 mA). Waiting for 1 minute and restarting.\n"
-                    self.logger_or_printer(message=msg,flag='info')
-                    sleep(60)
+                    msg=('The measurement of the BCT15 current is below threshold (0.01 mA).' + 
+                        ' Waiting for {} minutes and restarting.').format(HTadjust_interval)
+                    self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+                    
+                    self.wait_HTadjust_interval(time_knob=dummy_wait_time)
+                    
                     continue
+
                 else:
-                    msg="The measurement of the BCT15 currentLinacSingle is above threshold (0.01 mA). Proceeding with HTadjust measurements.\n"
-                    self.logger_or_printer(message=msg,flag='info')
+                    
+                    msg=('The measurement of the BCT15 current is above threshold (0.01 mA). ' + 
+                        'Proceeding with HTadjust operations.')
+                     
+                    self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
                     pass
 
-                msg=('Measuring the current for '+str(shot_number)+' shots at the Linac from BCT15 for the first time'+'.\n')
-                self.logger_or_printer(message=msg,flag='info')
 
-                linac_current_start=self.get_my_JAPC_parameter(device="ITF.BCT15",field='Acquisition',parameter='currentLinacSingle',my_selector=self.BCT15_selector,no_shots=shot_number)
+                # Start measurements
 
-                new_set_HTV=HT_start+HTadjust_vrange
+                my_keys=['Start','Positive','Negative']
 
-                msg=('First linac current measurement (DV=0): Mean-> '+str("%.3f"%linac_current_start['Mean'])+', Sigma-> '+str("%.3f"%linac_current_start['Sigma'])+'.\n')
+                k=0 # index for my_keys array
 
-                self.logger_or_printer(message=msg,flag='info')
+                BCT15_all={} #initialize dictionary
 
-                status=self.HT_Linac_Current_Decider(linac_current_start,new_set_HTV,safe_volt_low,safe_volt_high,shot_number=shot_number)
+                for dv in [0,HTadjust_vrange,-HTadjust_vrange]:
 
-                if not status:
+                    self.my_stopper(flag='',set_Vinit=True)
+
+                    msg='Initiating BCT15 measurements for DV = {} V.'.format(dv)
+                    self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+
+
+                    new_set_HTV=HT_start+dv
+
+                    if not HTadjust_test:
+
+                        msg='Setting the HT voltage to {} V.'.format(new_set_HTV)
+
+                        self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+
+                        self.set_my_JAPC_parameter(device='IP.NSRCGEN',
+                                                   field='Setting',parameter='sourceHT',
+                                                   val_to_set=new_set_HTV,lim_l=safe_volt_low,
+                                                   lim_r=safe_volt_high)
                     
-                    self.wait_HTadjust_interval(time_knob=dummy_wait_time)
-                    # msg='I am in the first not status loop!'
-                    # self.logger_or_printer(message=msg,flag='debug')
-                    continue
-
-
-                second_round=False #2
-
-                msg=('Measuring the current for '+str(shot_number)+
-                ' shots at the Linac from BCT15 for HT DV= + '+str(HTadjust_vrange)+' V.\n')
-
-                self.logger_or_printer(message=msg,flag='info')
-
-                linac_current_p=self.get_my_JAPC_parameter(
-                    device="ITF.BCT15",field='Acquisition',parameter='currentLinacSingle',
-                 my_selector=self.BCT15_selector,no_shots=shot_number)
-
-                new_set_HTV=HT_start-HTadjust_vrange
-
-                msg=('Second linac current measurement (+ DV): Mean-> '+
-                str("%.3f"%linac_current_p['Mean'])+', Sigma-> '+str("%.3f"%linac_current_p['Sigma'])+'.\n')
-
-                self.logger_or_printer(message=msg,flag='info')
-
-                status=self.HT_Linac_Current_Decider(linac_current_p,new_set_HTV,safe_volt_low,safe_volt_high,shot_number=shot_number)
-                # print('#2 Run(): My status is '+str(status))
-                if not status:
-                    
-                    self.wait_HTadjust_interval(time_knob=dummy_wait_time)
-                    # msg='I am in the second not status loop!'
-                    # self.logger_or_printer(message=msg,flag='debug')
-                    continue
-
-                second_round=False #3
-
-                msg=('Measuring the current for '+str(shot_number)+
-                ' shots at the Linac from BCT15 for HT DV= - '+str(HTadjust_vrange)+' V.\n')
-
-                self.logger_or_printer(message=msg,flag='info')
-
-                linac_current_m=self.get_my_JAPC_parameter(
-                    device="ITF.BCT15",field='Acquisition',parameter='currentLinacSingle',
-                my_selector=self.BCT15_selector,no_shots=shot_number)
-
-                msg=('Third linac current measurement (- DV): Mean-> '+
-                str("%.3f"%linac_current_m['Mean'])+', Sigma-> '+str("%.3f"%linac_current_m['Sigma'])+'.\n')
-
-                self.logger_or_printer(message=msg,flag='info')
-
-                status=1
-
-                while status:
-
-
-                    if linac_current_m['Sigma'] > 0.1*linac_current_m['Mean']:
-
-
-                        if second_round:
-
-                            msg='This is the second round in m measurement.\n'
-                            self.logger_or_printer(msg,flag='debug')
-
-                            msg='The current measurement from BCT15 is too unstable. Writing to eLogbook.\n'
-                            self.logger_or_printer(message=msg,flag='info')
-
-                            self.write_L3_logbook(flag_unstable=True,msg='')
-
-                            if not HTadjust_test:
-                                self.set_my_JAPC_parameter(
-                                    device='IP.NSRCGEN',field='Setting',parameter='source',val_to_set=HT_start,lim_l=safe_volt_low,lim_r=safe_volt_high)
-
-
-                            status=0
-                            continue
-
-                        else:
-
-                            msg='This is the first round in m measurement.\n'
-                            self.logger_or_printer(msg,flag='debug')
-
-                            second_round=True
-
-                            linac_current_m=self.get_my_JAPC_parameter(
-                                device="ITF.BCT15",field='Acquisition',parameter='currentLinacSingle',
-                             my_selector=self.BCT15_selector,no_shots=shot_number)
-                            continue
                     else:
-                        #In this part we are looking for values in the pair (HT_new, BCT15_new)! :-)
+
+                        msg='This is a test. No SET operation on-going.'
+                        self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+
+
+
+                    status,BCT15=self.HT_Current_Measurements(shot_number=10)
+
+                    msg=('Result of BCT15 measurements for adjustment DV = {0} V: ' + 
+                        'Mean-> {1}, Sigma-> {2}').format(dv,"%.3f"%BCT15['Mean'],"%.3f"%BCT15['Sigma'])
+
+                    self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+                    
+                    if not status:
+
+                        break
+
+
+                    BCT15_all[my_keys[k]]=BCT15['Mean']
+
+                    k+=1
+
                         
-                        if linac_current_p['Mean']>linac_current_start['Mean']:
-                            msg='Current p larger than current start.\n'
-                            self.logger_or_printer(msg,flag='debug')
 
-                            if linac_current_p['Mean']>linac_current_m['Mean']:
-                                msg='Current p larger than current m.\n'
-                                self.logger_or_printer(msg,flag='debug')
+                if not status:
 
-                                HT_new=HT_start+HTadjust_vrange
-                                BCT15_new=linac_current_p['Mean']
+                    msg='Adjustments of the HT source are not possible due to unstable conditions.'
+                    self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+                    msg='Setting the HT source voltage to the initial value.'
+                    self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
-                            elif linac_current_m['Mean']>linac_current_start['Mean']:
-
-                                msg='Current m larger than current start.\n'
-                                self.logger_or_printer(msg,flag='debug')
-
-                                HT_new=HT_start-HTadjust_vrange
-                                BCT15_new=linac_current_m['Mean']
-                            
-                            else:
-
-                                msg='Setting HT_new and BCT_new to their current values.\n'
-                                self.logger_or_printer(message=msg,flag='info')
-
-                                HT_new=HT_start
-                                BCT15_new=linac_current_start['Mean'] # This is not in the flowchart..should it be inside ?
+                    self.set_my_JAPC_parameter(device='IP.NSRCGEN',
+                           field='Setting',parameter='sourceHT',
+                           val_to_set=HT_start,lim_l=safe_volt_low,
+                           lim_r=safe_volt_high)
 
 
 
-                        elif linac_current_m['Mean']>linac_current_start['Mean']:
-                            msg='Current m larger than current start.\n'
-                            self.logger_or_printer(msg,flag='debug')
+                    self.wait_HTadjust_interval(time_knob=dummy_wait_time) # GOTO the beginning of the while loop
+                    
+                    
 
-                            HT_new=HT_start-HTadjust_vrange
-                            BCT15_new=linac_current_m['Mean']
-
-                        else:
-                            msg='Setting HT_new and BCT_new to their current values.\n'
-                            self.logger_or_printer(message=msg,flag='info')
-
-                            HT_new=HT_start
-                            BCT15_new=linac_current_start['Mean'] # This is not in the flowchart..should it be inside ?
-
-                        if not HTadjust_test:
-
-                            self.set_my_JAPC_parameter(device='IP.NSRCGEN',field='Setting',\
-                                                       parameter='sourceHT',val_to_set=HT_new,lim_l=safe_volt_low,lim_r=safe_volt_high)                        
-
-                        self.write_L3_logbook(flag_unstable=False,msg='')
-
-
-                        status=0
+                    continue
 
 
                 
 
+                #In this part we are looking for values in the pair (HT_new, BCT15_new)! :-)
+                
+                HT_new, BCT15_new=self.HT_Decider(BCT15_all,HT_start,HTadjust_vrange)
+                
+                self.my_stopper(flag='',set_Vinit=True)
+                
+                
+
+                if not HTadjust_test:
+
+
+                    self.set_my_JAPC_parameter(device='IP.NSRCGEN',field='Setting',
+                     parameter='sourceHT',val_to_set=HT_new,lim_l=safe_volt_low,lim_r=safe_volt_high)
+
+
+                else:
+
+                    msg=('New values for the HT adjustment acquired but ' + 
+                    ' no SET operation is performed (HTadjust_test=True).')
+                    self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+
+
+                msg="""HT extracting voltage [V]: {0}-->{1}, BCT15 I [mA]: {2}-->{3}""".format(HT_start,HT_new,
+                    "%.3f"%BCT15_all['Start'],"%.3f"%BCT15_new)
+                
+
+                self.write_L3_log(msg=msg,where='both logs',logfile_lvl='info')
+
                 self.wait_HTadjust_interval(time_knob=dummy_wait_time)
-                msg='I am in the chunk of code !'
-                self.logger_or_printer(message=msg,flag='debug')
+
                 continue  #GOTO initial while loop
 
             else:
 
             # Wait for new input and restart
-                msg='Inhibition of module HTadjust: Inhibit flag raised by the user. The module will restart after change of the HTadjust_inhibit flag.\n'
-                self.logger_or_printer(message=msg,flag='info') 
+                msg=('Inhibition of module HTadjust: Inhibit flag raised by the user.' + 
+                    'The module will resume after change of the HTadjust_inhibit flag.')
+
+                self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info') 
+
                 self.wait_HTadjust_interval(time_knob=dummy_wait_time)
-                #sleep(60)
+                # sleep(10) #wait 10 seconds before restarting.
                 continue  #GOTO initial while loop
                 
 
 
-    
-    # A small snippet for string comparison
-#     @staticmethod
-#     def contains_word(s, w):
-#         return f'{w}' in f' {s} '
+#                                                    RUN ME                                                
+# *--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--* #
+
     
 if __name__ == "__main__":
         
-    HT_object=HTadjust(simulate_SET=False, sourceHT_selector=None,
+    HT_object=HTadjust(simulate_SET=True, sourceHT_selector=None,
                        BCT15_selector='LEI.USER.ALL',
-                       which_ebook='LINAC 3',no_elog_write=False,log_me=True,log_level='INFO') # # Roll back to SET mode with simulat_SET=True ; For L3 elog write : which_ebook='LINAC 3'  
+                       which_ebook='LINAC 3',no_elog_write=False,log_me=True,log_level='INFO',
+                       print_activity=False) 
+                       #Roll back to Simulation mode with simulate_SET=True ; For L3 elog write : which_ebook='LINAC 3'  
+
+
     HT_object.run(dummy_wait_time=0,shot_number=10) # Run HTadjust module.
-
-
-
