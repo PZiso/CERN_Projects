@@ -19,7 +19,8 @@ import datetime
 #Sys.exit needed for killing the module
 from sys import exit
 
-
+# For string search
+import re
 
 
 class GHOST():
@@ -281,7 +282,13 @@ class GHOST():
         
         self.write_L3_log(msg=msg,where='both logs',logfile_lvl='info')
 
+     
+    @staticmethod    
+    def string_found(string1, string2):
         
+       if re.search(r"\b" + re.escape(string1) + r"\b", string2):
+          return True
+       return False 
 
 
     def get_FESA_param(self,param_request):
@@ -300,25 +307,41 @@ class GHOST():
                                 'kill' 
         
         """
+        
+        
 
         my_field=self.FESA_GHOST_Device+'/'+self.FESA_GHOST_Property
         
+        my_list=self.japc.getParamInfo(my_field)
         
+        my_inquiry=my_field+'#'+self.mod_name+'_'+param_request
+        
+        assert string_found(my_inquiry,my_list),'Wrong name of FESA parameter: {}'.format(param_request)
+        
+        my_param=[]
 
-        try:
-
-            my_param=self.japc.getParam(my_field+'#'+self.mod_name+'_'+param_request)
-
-            return my_param
-
-        except:
-
-            msg=("There seems to be a problem communicating with the FEC." + 
-                " No GET action is possible. Aborting.")
+        while not my_param:
             
-            self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
-            raise ValueError(msg)
+            try:
+
+                my_param=self.japc.getParam(my_inquiry)
+
+                
+
+            except:
+
+                msg=("There seems to be a problem communicating with the FEC." + 
+                    " No GET action is possible. Rechecking in 5 minutes.").format(self.mod_name)
+                
+                self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+                
+                sleep(5*60)
+
+                
+
+
+        return my_param
 
 
 
@@ -665,6 +688,7 @@ if __name__=='__main__':
     myGT=GHOST(mod_name='OvenRestart',FESA_GHOST_Device='GHOSTconfig',FESA_GHOST_Property='OvenRestart',
                simulate_SET=True,INCA_ACCEL='LEIR',japc_selector=None,
                which_ebook='TESTS',no_elog_write=True,log_me=True,log_level='INFO',dir_logging=my_log_dir)
+
 
 
 
