@@ -1,23 +1,8 @@
-# For some simple calculations
-import numpy as np
+import sys
 
-#PyJAPC for getting & setting FESA parameters
-import pyjapc
- 
-# Time module for sleeping
-from time import sleep, strftime
+sys.path.append('../../lib')
 
-#PyLogBook to push events to the eLogbook
-import pylogbook
-
-#Logging for keeping up with the flow...
-import logging
-
-# For logging with time-stamp
-import datetime
-
-#Sys needed for logging in Jupyter with StreamHandler..It can be removed for non-Jupyter platform
-from sys import stderr,exit
+from cmn_methods import *
 
 
 class OvenRestart(object):
@@ -35,12 +20,14 @@ class OvenRestart(object):
     
     def __init__(self,FESA_GHOST_Device='GHOSTconfig',FESA_GHOST_Property='OvenRestart',
                  simulate_SET=True,INCA_ACCEL='LEIR',Oven_FESA_selector=None,
-                 OvenResistance_selector='LEI.USER.ALL',OvenPower_wait=60,OvenIncrPower_wait=20,Pressure_wait=5,Pressure_limit=1e-6,which_ebook='LINAC 3',
-                 no_elog_write=False,log_me=True,log_level='DEBUG'):
+                 OvenResistance_selector='LEI.USER.ALL',OvenPower_wait=60,OvenIncrPower_wait=20,
+                 Pressure_wait=5,Pressure_limit=1e-6,which_ebook='LINAC 3',
+                 no_elog_write=False,log_me=True,log_level='DEBUG',dir_logging=''):
         """
         Initialisation of the OvenRestart module. The input parameters are:
         
-        FESA_GHOST_Device: (default:GHOSTconfig): The device of the GHOST module in the appropriate FESA class.
+        FESA_GHOST_Device: (default:GHOSTconfig): The device of the 
+                                                  GHOST module in the appropriate FESA class.
         
         FESA_GHOST_Property: (default:OvenRestart): The property of the GHOST module in the appropriate FESA class.
         
@@ -68,6 +55,8 @@ class OvenRestart(object):
         log_me:(default:True): Flag to initiate the logger module for the local log system.
         
         log_level:(default:'DEBUG'): The level of logging for the local log system.
+
+        dir_logging:(default:''): The directory for the saving of the local log files.
         
         
         
@@ -103,416 +92,14 @@ class OvenRestart(object):
         
         self.log_me=log_me
         
+        self.dir_logging=dir_logging
+        
         self.__author__='P. Zisopoulos (pzisopou@cern.ch)'
         
-        self.__version__='v.0.1'
+        self.__version__='v.1.2'
         
     
-        
-    def my_stopper(self,flag='initial'):
-        """ Function to terminate the OvenRestart module by checking the OvenRestart_kill flag.
-
-            The termination of the OvenRestart modulde is performed with the help of the sys.exit() function.
-
-            When flag='initial' some useful info are printed out, for the begininning of the execution of the code.
-            If flag='' there is not print out from the code and this mode is used when the function is called 
-            in other places in the code. 
-
-        """
-        
-        
-        
-        if flag=='initial':
-            verbose=1
-        else:
-            verbose=0
-        
-        
-        
-        if verbose:
-            msg='Checking OvenRestart_kill flag.\n'
-            self.logger_or_printer(message=msg,flag='info')
-
-        signum=self.get_OvenRestart('kill')
-
-        if signum:
-            
-            msg='Terminating OvenRestart module: Kill flag raised by the user.\n'
-            self.logger_or_printer(message=msg,flag='info')
-            self.write_L3_logbook(msg=msg)
-            
-            exit(msg)
-        
-        else:
-            
-            if verbose:
-                msg='OvenRestart_kill checked. Running OvenRestart module.\n'
-                self.logger_or_printer(message=msg,flag='info')
-                self.write_L3_logbook(msg=msg)
-                
-
-            return
-        
-        
-        
-    def initiate_JAPC(self,log=50):
-        """Initialisation of the pyJAPC module. The class arguments are passed in the pyjapc module as:
-        pyjapc.PyJapc(selector=ourceHT_selector,
-                           incaAcceleratorName=INCA_ACCEL,noSet=simulate_SET) 
-        """
-
-        global japc
-        japc=pyjapc.PyJapc(selector=self.Oven_FESA_selector,
-                           incaAcceleratorName=self.INCA_ACCEL,noSet=self.simulate_SET,logLevel=log) 
-
-    def initiate_elogbook(self):
-        """
-        Initialisation of the elogbook module. The class arguments are passed in the elogbook module as:
-        pylogbook.eLogbook(which_ebook)
-        
-        """
-        global elog
-        elog=pylogbook.eLogbook(self.which_ebook)
     
-    def initiate_logger(self):
-        """
-        Initialisation of the logging system. The Python logging module is used. The class argument of self.log_level,
-        is passed  in the logging module and the default directory of the log files is in ../log. Each log file
-        is unique, with a distinct time stamp.
-        
-        """
-        if self.log_me:
-
-            global logger
-            ttl='{:%Y-%m-%d_%H_%M_%S}'.format(datetime.datetime.now())
-            dir_='../log/'
-            file_name=dir_+'OvenRestart_'+ttl+'.log'
-            # Create logger
-            logger = logging.getLogger('OvenRestart')
-            lvl=logging.getLevelName(self.log_level)
-            logger.setLevel(lvl)
-             # Create STDERR handler
-            handler_stream = logging.StreamHandler(stderr)
-            handler_logfile=logging.FileHandler(file_name,mode='w')
-
-            # ch.setLevel(logging.DEBUG)
-
-            # Create formatter and add it to the handler
-            formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
-            handler_logfile.setFormatter(formatter)
-
-            # Set STDERR handler as the only handler 
-            logger.handlers = [handler_stream,handler_logfile]
-        
-        else:
-
-            pass
-
-     
-    
-    def logger_or_printer(self,message,flag):
-        """
-        Function to switch between logging or print mode, according to the OvenRestart module initialization parameter log_me.
-        The input msg is the message (string) to be logged or printed. 
-        The flag corresponds to the user defined severity (logging level) for the msg input.
-        
-        """
-        
-    
-        if self.log_me:
-            
-            lvl=self.log_level
-            
-            if (lvl=='INFO') and (flag=='info'):
-                logger.info(message)
-            elif (lvl=='DEBUG') and (flag=='debug'):
-                logger.debug(message)
-            elif (lvl=='WARNING') and (flag=='warning'):
-                logger.warning(message)
-            elif (lvl=='ERROR') and (flag=='error'):
-                logger.error(message)
-            elif (lvl=='CRITICAL') and (flag=='critical'):
-                logger.critical(message)
-
-        else:
-            
-#             logger.info('Logging suppressed by the user.\n')
-            print('Log of OvenRestart activity suppressed by the user. Message: '+message)
-
-                
-    def get_OvenRestart(self,OvenRestart_input):
-        
-        """
-        Method to get the values of the OvenRestart parameters in the GHOST FESA class via the GET method of pyjapc module.
-        The input OvenRestart_input (string) can be only the keywords kill, inhibit, test, Vrange, intervall
-        which correspond to the OvenRestart_kill and OvenRestart_inhibit parameters.
-        
-        """
-
-        my_field=self.FESA_GHOST_Device+'/'+self.FESA_GHOST_Property
-        valid_params=japc.getParamInfo(my_field)
-        param_full_name='OvenRestart_'+OvenRestart_input
-
-        try:
-
-            OvenRestart_param=japc.getParam(my_field+'#'+param_full_name)
-            return OvenRestart_param
-
-        except:
-
-            msg='There seems to be a problem communicating with the FEC. No GET action is possible. Aborting.\n'
-            self.logger_or_printer(msg,flag='error')
-            raise ValueError(msg)
-
-        
-
-    
-    
-           
-    def get_my_JAPC_parameter(self,device,field,parameter,my_selector=None,no_shots=10,subscribe_=1,basic_per=1.2,verbose=True):
-        """
-        Method to get the values of any FESA parameter via the GET method of pyjapc module.
-
-        The inputs are:{
-
-        device: The device name in FESA
-
-        field:  The field name in FESA
-
-        parameter: The parameter name in FESA
-
-        my_selector: The PLS selector (Set None for non-ppm parameters)
-
-        no_shots: The number of shots that the variable is measured.
-
-        subscribe_: Logical flag for subscription (True) or not (False) to a parameter via PyJAPC
-
-        basic_per: In case of subscribe_=False for a parameter, manual measurement is enabled, which is periodical with period basic_per.
-
-        verbose: Flag to ctivate some additional information, while measuring a parameter.
-
-        }
-
-        The outputs are:{
-
-        A dictionary with the keys 'Values'-> the vector of the measurements of length no_shots,
-        'Mean'-> The average value of the 'Values' vector, 'Sigma'->The standard deviation of the 'Values' vector.
-
-        }
-
-        Normally the pyjapc module GET function is called to interact with 
-        the parameter device/field#parameter (based on the JAPC rules)
-
-        """
-        
-        self.my_stopper(flag='')
-
-        my_constructor=device+'/'+field+'#'+parameter
-        global ind_
-        
-        
-        if subscribe_:
-        
-            param=[]
-            ind_=1
-            
-            def newValueCallback(parameterName, newValue, headerInfo):
-
-                """
-                Call-back function to subscribe to the parameter parameterName. 
-                The output is the newValue value of the parameter. This function
-                is called through pyjapc for the number of shots that the user
-                has defined (no_shots)
-
-                """
-                
-                
-                global ind_
-
-            #     param.append(newValue)
-                if not headerInfo['isFirstUpdate']:
-                    param.append(newValue)
-                    msg="({0}) Measured value for {1} is: {2}\n".format(ind_,parameterName, "%.3f"%newValue)
-                    if verbose:
-                        self.logger_or_printer(message=msg,flag='info')
-                    ind_+=1
-
-            japc.setSelector(my_selector)
-            msg=my_constructor+' measurement: Assigning selector-> '+str(my_selector)+'.\n'
-            self.logger_or_printer(message=msg,flag='info')
-
-            japc.subscribeParam(my_constructor, newValueCallback, getHeader=True)
-            japc.startSubscriptions()
-
-            while True:
-
-                if ind_<=no_shots:
-                    continue
-                else:
-                    japc.stopSubscriptions()
-                    japc.clearSubscriptions()
-                    break
-            param=param[:no_shots]
-
-
-            
-        else:
-            
-            param=[]
-            ind_=1
-            #msg="Manual JAPC Measurement Mode: Waiting for "+str(basic_per)+" seconds for each measurement.\n"
-            msg="Manual JAPC Measuremet.\n"
-            self.logger_or_printer(message=msg,flag='info')
-            
-            japc.setSelector(my_selector)
-            msg=my_constructor+' measurement: Assigning selector-> '+str(my_selector)+'.\n'
-            self.logger_or_printer(message=msg,flag='info')
-            
-            for k in range(no_shots):
-                newValue=japc.getParam(my_constructor)
-                param.append(newValue)
-                msg="("+str(ind_)+") Measured value for {0} is: {1}\n".format(my_constructor, "%.3f"%newValue)
-                if verbose:
-                    self.logger_or_printer(message=msg,flag='info')
-                sleep(basic_per)
-                ind_+=1
-                japc.stopSubscriptions()
-                japc.clearSubscriptions()
-        
-        
-        return {'Values':param,'Mean':np.mean(param),'Sigma':np.std(param)}
-    
-    
-
-    def set_my_JAPC_parameter(self,device,field,parameter,val_to_set,lim_l,lim_r,my_selector=None):
-        
-        """
-        Method to set the values of any FESA parameter via the SET method of pyjapc module.
-        
-        The inputs are:
-        
-        {
-        
-        device: The device name in FESA
-        
-        field:  The field name in FESA
-        
-        parameter: The parameter name in FESA
-        
-        val_to_set: The new value to be set for the parameter device/field#parameter.
-        
-        lim_l, lim_r: The lower and upper limits of the value to be set. If the val_to_set value is outside this range, the SET action
-        is aborted and the parameter retains its initial value.
-
-        my_selector: The PLS selector (Set None for non-ppm parameters)
-        
-        }
-        
-        
-        Normally the PyJAPC module SET function is called to interact with 
-        the parameter device/field#parameter. (the name construction follows the JAPC rules)
-        
-        """
-        
-        self.my_stopper(flag='')
-        
-        my_constructor=device+'/'+field
-        japc.setSelector(my_selector)
-        dic_FESA=japc.getParam(my_constructor)
-        temp={}
-        for key,item in dic_FESA.items():
-            if not (('_min' in key ) or ('_max' in key)):
-                temp[key]=item
-        
-        dic_FESA=temp
-        
-        if float(val_to_set)>=float(lim_l) and float(val_to_set)<=float(lim_r):
-              
-            dic_FESA[parameter]=float(val_to_set)
-            
-            try:
-            
-                japc.setParam(my_constructor,dic_FESA)
-                msg='Setting '+my_constructor+'#'+parameter+' parameter to value '+str(val_to_set)+'.\n'
-                self.logger_or_printer(message=msg,flag='info')
-            except:
-                msg='Unable to set '+my_constructor+'#'+parameter+' parameter to value '+str(val_to_set)
-                self.logger_or_printer(msg,flag='error')
-                raise ValueError('Unable to set '+my_constructor+'#'+parameter+' parameter to value '+
-                                 str(val_to_set))
-        
-        else:
-            msg=('Given value to SET is outside safe operating range (Limit->['+str(lim_l)+' '+str(lim_r)+']) . Aborting SET for parameter '
-            +my_constructor+'#'+parameter+'.\n')
-            
-            self.logger_or_printer(msg,flag='info')
-            
-            
-                
-
-                    
-         
-        
-    
-    def write_L3_logbook(self,msg):
-        """
-        Method to write predefined messages to the elogbook. The elogbook is defined from the user
-        at the instantation of the OvenRestart module. The action of writing to the elogbook can be 
-        suppressed with the no_elog_write flag. The messages are also written in the local log file in case the 
-        log_me flag=True in the class of OvenRestart module.
-        
-
-
-        msg:           The message to be passed in pylogbook and issued on the selected elogbook
-        
-
-        """
-
-
-        
-        if not self.no_elog_write: 
-        
-            elog.create_event(msg+'\n[GHOST:OvenRestart]')
-            
-            if self.log_me:
-                msg2='New entry in eLogBook: '+msg+'.\n'
-            
-                self.logger_or_printer(message=msg2,flag='info')
-
-        else:
-
-            if self.log_me:
-                m1='E-log activity suppressed :\n'
-                self.logger_or_printer(m1, flag='info')
-                self.logger_or_printer(msg, flag='info')
-
-
-
-        
-    def wait_OvenRestart_interval(self,time_knob):
-        """
-        Method to freeze the execution of the OvenRestart module. The freeze is performed with the sleep method of the time module.
-        
-        The duration of the freeze is user defined and should be registered at the creation of the OvenRestart object.
-
-
-        During sleep time, the OvenRestart_kill flag is checked via the method my_stopper(). 
-
-        Inputs:
-
-        time_knob:      If any positive integer other than 0,the waiting time will be this number in minutes. E.g. if time_knob=10, the waiting interval is 10 minutes.
-        
-        """
-        
-
-        assert time_knob>0,"Please give a positive and finite waiting time."
-        
-        m=1
-        while m<=time_knob*60:
-            
-            self.my_stopper(flag='')
-            sleep(1)# Input in seconds
-            m+=1
         
     
     
@@ -525,25 +112,28 @@ class OvenRestart(object):
 
         assert time_wait>0,"Please give a positive and finite waiting time."
 
-        P=japc.getParam('IP.VGP2/PR')
+        P=myGT.japc.getParam('IP.VGP2/PR')
 
-        msg='The pressure is {} mbar.\n'.format("%.2E"%P)
-        self.logger_or_printer(message=msg,flag='info')
+        msg='The pressure is {} mbar.'.format("%.2E"%P)
+        myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
         while P >= self.Pressure_limit:
 
-            msg='Pressure is larger than {0} mbar. Cannot proceed. Waiting for {1} minutes before next measurement.\n'.format(self.Pressure_limit,time_wait)
-            self.logger_or_printer(message=msg,flag='info')
-            self.write_L3_logbook(msg=msg+'[GHOST:OvenRestart]')
+            msg=('Pressure is larger than {0} mbar. '+
+                'Waiting for {1} minutes before '+
+                'next measurement.').format(self.Pressure_limit,time_wait)
+
+            myGT.write_L3_log(msg=msg+'[GHOST:OvenRestart]',where='both logs',logfile_lvl='info')
 
             # Wait for 5 minutes
-            self.wait_OvenRestart_interval(time_knob=time_wait)
+            myGT.wait_time_interval(FESA_time=time_wait,set_init=False)
             # Re-check pressure
-            P=japc.getParam('IP.VGP2/PR')
+            P=myGT.japc.getParam('IP.VGP2/PR')
     
     def which_combo(self):
         """
-        A method which produces indexes and a list with the oven numbers, which correspond to the oven that is selected.
+        A method which produces indexes and a list with the oven numbers, 
+        in accordance to the oven that is selected.
        
         """
 
@@ -563,17 +153,19 @@ class OvenRestart(object):
     def read_power(self):
         """
         Method to read the Power of the ovens.
+
         """
 
         left,right,which_oven=self.which_combo()
 
-        japc.setSelector(None)
+        myGT.japc.setSelector(None)
 
-        oven_power=japc.getParam(['IP.NSRCGEN/Setting#oven1Power','IP.NSRCGEN/Setting#oven2Power'])[left:right]
+        oven_power=myGT.japc.getParam(['IP.NSRCGEN/Setting#oven1Power',
+            'IP.NSRCGEN/Setting#oven2Power'])[left:right]
         m=0
         for powpow in oven_power:
-            msg='The power of oven {0} is measured to be {1} W.\n '.format(which_oven[m],"%.2f"%powpow)
-            self.logger_or_printer(message=msg,flag='info')
+            msg='The power of oven {0} is measured to be {1} W.'.format(which_oven[m],"%.2f"%powpow)
+            myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
             m+=1
 
         return oven_power
@@ -581,27 +173,29 @@ class OvenRestart(object):
     def read_resistance(self):
         """
         Method to read the resistance of the ovens.
-        
+        Note the selector cannot be None otherwide JAPC complains for multiplexed parameter.
+        Selector LEI.USER.ALL is mandatory so we need to subscribe.
+
         """
 
         if Oven_choice==1 or Oven_choice==2:
 
-            res=[self.get_my_JAPC_parameter(device='IP.NSRCGEN',field='Acquisition',
+            res=[myGT.get_my_JAPC_parameter(device='IP.NSRCGEN',field='Acquisition',
                 parameter='oven'+str(Oven_choice)+'AqnR',my_selector='LEI.USER.ALL',no_shots=1,subscribe_=1,verbose=False)['Mean']]
             which_oven=[Oven_choice]
 
         elif Oven_choice==3:
 
-            res=[self.get_my_JAPC_parameter(device='IP.NSRCGEN',field='Acquisition',
+            res=[myGT.get_my_JAPC_parameter(device='IP.NSRCGEN',field='Acquisition',
                 parameter='oven1AqnR',my_selector='LEI.USER.ALL',no_shots=1,subscribe_=1,verbose=False)['Mean'],
-            self.get_my_JAPC_parameter(device='IP.NSRCGEN',field='Acquisition',
+            myGT.get_my_JAPC_parameter(device='IP.NSRCGEN',field='Acquisition',
                 parameter='oven2AqnR',my_selector='LEI.USER.ALL',no_shots=1,subscribe_=1,verbose=False)['Mean']]
             which_oven=[1,2]
 
         m=0
         for r in res:
-            msg='The resistance of oven {0} is measured to be {1} Ohms.\n '.format(which_oven[m],"%.2f"%r)
-            self.logger_or_printer(message=msg,flag='info')
+            msg='The resistance of oven {0} is measured to be {1} Ohms.'.format(which_oven[m],"%.2f"%r)
+            myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
             m+=1
 
         return res
@@ -665,83 +259,78 @@ class OvenRestart(object):
         """
         
         
-        
+        # Initialize my helper !
 
-        self.initiate_logger()   
-        self.initiate_JAPC()# Change pseudo_set to False to escape simulation mode for SET action
-        self.initiate_elogbook() # Currently issuing on LINAC3 logbook
-        
-
-        if self.simulate_SET:
-
-            msg='******Initiating OvenRestart module in Simulation Mode. No SET operations will be performed******\n'
-            self.logger_or_printer(message=msg,flag='info')
-            self.write_L3_logbook(msg=msg)
-
-        else:
-
-            msg='******Initiating OvenRestart module.******\n'
-            self.logger_or_printer(message=msg,flag='info')
-            self.write_L3_logbook(msg=msg)
+        myGT=GHOST(mod_name=self.__class__.__name__,FESA_GHOST_Device=self.FESA_GHOST_Device,
+            FESA_GHOST_Property=self.FESA_GHOST_Property,simulate_SET=self.simulate_SET,
+            INCA_ACCEL='LEIR',japc_selector=self.Oven_FESA_selector,
+            which_ebook=self.which_ebook,no_elog_write=self.no_elog_write,
+            log_me=self.log_me,log_level=self.log_level,dir_logging=self.dir_logging)
 
 
+        myGT.start_module()# Initialize logging systems and JAPC
 
-        msg='Initiating JAPC, E-Logbook and OvenRestart logger.\n'
-        self.logger_or_printer(message=msg,flag='debug')
-   
-        self.my_stopper(flag='initial') # Check OvenRestart_kill flag
-
+        myGT.my_stopper(flag='initial',set_init=False) # Check OvenRestart_kill flag 
+                                                       #without setting any initial value :-)
 
         
 
         #Single-passage module !
 
 
-        msg='Acquiring OvenRestart_inhibit.\n'
-        self.logger_or_printer(msg,flag='debug')
+        msg='Acquiring OvenRestart_inhibit.'
+        myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
-        OvenRestart_inhibit=self.get_OvenRestart('inhibit')
+        OvenRestart_inhibit=myGT.get_FESA_param('inhibit')
 
-        msg='The inhibit flag is: '+str(OvenRestart_inhibit)+'.\n'
-        self.logger_or_printer(message=msg,flag='info')
-        Oven_choice=self.get_OvenRestart('oven')
+        msg='The inhibit flag is: '+str(OvenRestart_inhibit)
+        myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+
     
         
         #Check inhbit flag !
         if not OvenRestart_inhibit:
 
-            Oven_choice=get_OvenRestart('oven')
+            # Get the choice of oven
+            Oven_choice=myGT.get_FESA_param('oven')
 
             #Check the status of the Oven ! 
 
             if Oven_choice==1 or Oven_choice==2:
+                
+                myGT.japc.setSelector(None)
 
-                Oven_status=japc.getParam('IP.NSRCGEN/Status#oven'+str(Oven_choice)+'Status')[1]
+                Oven_status=myGT.japc.getParam('IP.NSRCGEN/Status#oven'+str(Oven_choice)+'Status')[1]
                 which_oven=[Oven_choice]
-                msg='Oven {} is selected for restart.\n'.format(Oven_choice)
-                self.logger_or_printer(message=msg,flag='info')
-                self.write_L3_logbook(msg=msg)
+                msg='Oven {} is selected for restart.'.format(Oven_choice)
+
+                myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
             elif Oven_choice==3:
 
-                Oven_both_status=[item[0] for item in japc.getParam(['IP.NSRCGEN/Status#oven1Status','IP.NSRCGEN/Status#oven2Status'])]
+                Oven_both_status=[item[0] for item \
+                in myGT.japc.getParam(['IP.NSRCGEN/Status#oven1Status',
+                    'IP.NSRCGEN/Status#oven2Status'])]
+                
                 which_oven=[1,2]
-                msg='Ovens 1 and 2 are selected for restart.\n'
-                self.logger_or_printer(message=msg,flag='info')
-                self.write_L3_logbook(msg=msg)
+                msg='Ovens 1 and 2 are selected for restart.'
+                myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
                 if sum(Oven_both_status)==4:
                     Oven_status='ON'
                 else:
-                    Oven_status='OFF' #if one of the ovens is OFF in the oven selector 3 case, then do not proceed with operations.
+                    Oven_status='OFF' #if one of the ovens is OFF 
+                                      #in the oven selector 3 case, then do not proceed with operations.
             else:
-                raise ValueError('Wrong choice of oven. Please select 1,2,3 in the OvenRestart_oven parameter in the FESA class.')
+                raise ValueError(('Wrong choice of oven. Please select 1,2,3 in '+
+                    ' the OvenRestart_oven parameter in the FESA class.'))
 
 
             if Oven_status=='ON':
 
-                msg="The status of the oven {0} is {1}. Proceeding with the reading of the oven power.\n".format(which_oven,Oven_status)
-                self.logger_or_printer(message=msg,flag='info')
+                msg=("The status of the oven {0} is {1}. " +
+                    "Proceeding with the reading of the oven power.").format(which_oven,Oven_status)
+                myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
 
                 #Get oven power
@@ -750,169 +339,186 @@ class OvenRestart(object):
                 #Make sure it is not larger than 0 
                 if not all(Oven_power):
 
-                    msg='Oven does not appear to be powered on. Proceeding with OvenRestart module operations.\n'
-                    self.logger_or_printer(message=msg,flag='info')
+                    msg=('Oven does not appear to be powered on.'+
+                        ' Proceeding with OvenRestart module operations.')
 
-                    #Get the pressure. Wait 5 minutes for each measurement of the pressure, until it is above threshold.
+                    myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+
+                    #Get the pressure. 
+                    #Wait 5 minutes for each measurement of the pressure, until it is above threshold.
 
                     self.pressure_checker()
 
-                    msg='Pressure is larger than 1e-6 mbar. Proceeding with resistance reading from oven {}.\n'.format(which_oven)
-                    self.logger_or_printer(message=msg,flag='info')
+                    msg=('Pressure is larger than 1e-6 mbar. '+
+                        'Proceeding with resistance reading from oven {}.').format(which_oven)
+                    myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
                         
 
-                    msg='Setting power of oven {0} to 2 W.\n'.format(which_oven)
-                    self.logger_or_printer(message=msg,flag='info')
+                    msg='Setting power of oven {0} to 2 W.'.format(which_oven)
+                    myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
                     set_oven_power=2.0 #in Watts
 
                     for ov in which_oven:
-                        self.set_my_JAPC_parameter(device='IP.NSRCGEN',field='Setting',parameter='oven'+str(ov)+'Power',
-                            val_to_set=set_oven_power,lim_l=0.0,lim_r=10.0,my_selector=None)
+                        myGT.set_my_JAPC_parameter(device='IP.NSRCGEN',
+                            field='Setting',parameter='oven'+str(ov)+'Power',
+                            my_selector=None,val_to_set=set_oven_power,lim_l=0.0,lim_r=10.0)
 
-                    msg='The power of the oven {} is set. Waiting for 60 minutes.\n'.format(which_oven)
-                    self.logger_or_printer(message=msg,flag='info')
+                    msg='The power of the oven {} is set. Waiting for 60 minutes.'.format(which_oven)
+                    myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
                     #wait for 60 minutes
                     time_wait=self.OvenPower_wait
-                    self.wait_OvenRestart_interval(time_knob=time_wait)
+                    myGT.wait_time_interval(FESA_time=time_wait,set_init=False)
 
-                    msg='{} minutes have passed. Continuing with pressure measurement.\n'.format(time_wait)
-                    self.logger_or_printer(message=msg,flag='info')
+                    msg='{} minutes have passed. Continuing with pressure measurement.'.format(time_wait)
+                    myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
-                    #check pressure for second time. Wait 5 minutes for each measurement of the pressure, until it is above threshold.
+                    #check pressure for second time. 
+                    #Wait 5 minutes for each measurement of the pressure, until it is above threshold.
 
                     self.pressure_checker()
 
-                    msg='Pressure is smaller than {0} mbar. Proceeding with resistance reading from oven {1}.\n'.format(self.Pressure_limit,which_oven)
-                    self.logger_or_printer(message=msg,flag='info')
+                    msg=('Pressure is smaller than {0} mbar. '+
+                        'Proceeding with resistance reading from '+
+                        'oven {1}.').format(self.Pressure_limit,which_oven)
+
+                    myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
                     R=self.read_resistance()
 
-                    msg='The resistance of oven {0} is measured to be {1} Ohms.\n'.format(Oven_choice,R)
+                    msg='The resistance of oven {0} is measured to be {1} Ohms.'.format(Oven_choice,R)
+                    myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
-                    self.logger_or_printer(message=msg,flag='info')
+                    go_up=0.5 # Increase Oven Power by 0.5 W
+
+                    while all(np.asarray(R)>0.5) and all(np.asarray(R)<5.0):
+
+                        
+                        msg=('Power of oven {0} is {1} W. '+
+                            'Increasing power by {2} W.').format(which_oven,set_oven_power,go_up)
+                        myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
 
-                    if all(np.asarray(R)>0.5) and all(np.asarray(R)<5.0):
+                        #increase the oven power
 
-                        go_up=0.5
+                        set_oven_power+=go_up
+
+                        for ov in which_oven:
+
+                            myGT.set_my_JAPC_parameter(device='IP.NSRCGEN',
+                                field='Setting',parameter='oven'+str(ov)+'Power',
+                                val_to_set=set_oven_power,lim_l=0.0,lim_r=10.0,my_selector=None)
 
 
 
-                        while True:
+                        #wait for 20 minutes
 
+                        time_wait=self.OvenIncrPower_wait
+                        msg=('Oven {0} power increased by {1} W. '+
+                            'Waiting for {2} minutes.').format(which_oven,go_up,time_wait)
+                        myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+
+                        myGT.wait_time_interval(FESA_time=time_wait,set_init=False)
+
+                        msg=('{0} minutes have passed. '+
+                            'Proceeding with pressure measurement.').format(time_wait)
+                        myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+
+                        self.pressure_checker()
+
+                        msg=('Pressure is smaller than {0} mbar. '+
+                            'Proceeding with resistance '+
+                            'reading from oven {1}.').format(self.Pressure_limit,which_oven)
+
+                        myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+
+                        
+
+                        
+                        msg='Checking if oven {0} is larger than 5.0 W.'.format(which_oven)
+                        myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+
+                        Oven_power=self.read_power()
+
+                        if all(np.array(Oven_power)>=5.0):
+                            m=0
+
+                            for it in which_oven:
+
+                                msg=('Power measurement of '+
+                                    ' oven {0} is {1} W.').format(it,"%.2f"%Oven_power[m])
+                                
+                                myGT.write_L3_log(msg=msg,where='both logs',logfile_lvl='info')
+                                
+                                m+=1
+
+                            msg="OvenRestart module finished with success. Goodbye! :-)"
+                            myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
                             
-                            msg='Power of oven {0} is {1} W. Increasing power by {2} W.\n'.format(which_oven,set_oven_power,go_up)
-                            self.logger_or_printer(message=msg,flag='info')
 
+                            break #exit from the while loop
 
-                            #increase the oven power
+                        else:
 
-                            set_oven_power+=go_up
+                            m=0
 
-                            for ov in which_oven:
-
-                                self.set_my_JAPC_parameter(device='IP.NSRCGEN',field='Setting',parameter='oven'+str(ov)+'Power',val_to_set=set_oven_power,lim_l=0.0,lim_r=10.0,my_selector=None)
-
-
-
-                            #wait for 20 minutes
-
-                            time_wait=self.OvenIncrPower_wait
-                            msg='Oven {0} power increased by {1} W. Waiting for {2} minutes.\n'.format(which_oven,go_up,time_wait)
-                            self.logger_or_printer(message=msg,flag='info')
-
-                            self.wait_OvenRestart_interval(time_knob=time_wait)
-
-                            msg='{0} minutes have passed. Proceeding with pressure measurement.\n'.format(time_wait)
-
-                            self.pressure_checker()
-
-                            msg='Pressure is smaller than {0} mbar. Proceeding with resistance reading from oven {1}.\n'.format(self.Pressure_limit,which_oven)
-                            self.logger_or_printer(message=msg,flag='info')
-
+                            for it in which_oven:
+                                msg=('Power measurement of '+
+                                    'oven {0} is {1} W. ').format(it,"%.2f"%Oven_power[m])
+                                myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
                             
 
-                            R=self.read_resistance()
+                            # Read resistance to determine if the module should go on
+                            R=self.read_resistance() 
 
+                            msg=('The resistance of oven {0} is measured '+
+                            'to be {1} Ohms.').format(Oven_choice,R)
+                            myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+                            
+                            continue #continue in the while loop.
 
-                            if all(np.asarray(R)>0.5) and all(np.asarray(R)<5.0):
-
-                                msg='Checking if oven {0} is larger than 5.0 W.\n'.format(which_oven)
-
-                                Oven_power=self.read_power()
-
-                                if all(np.array(Oven_power)>=5.0):
-                                    m=0
-                                    for it in which_oven:
-
-                                        msg='Final power measurement of oven {0} is {1} W.\n'.format(it,"%.2f"%Oven_power[m])
-                                        self.logger_or_printer(message=msg,flag='info')
-                                        self.write_L3_logbook(msg=msg)
-                                        m+=1
-
-                                    msg="OvenRestart module finished with success. Goodbye! :-)"
-                                    self.write_L3_logbook(msg)
-                                    self.logger_or_printer(message=msg,flag='info')
-
-                                    break #exit from the while loop
-
-                                else:
-
-                                    m=0
-
-                                    for it in which_oven:
-                                        msg='Final power measurement of oven {0} is {1} W.\n'.format(it,"%.2f"%Oven_power[m])
-                                        self.logger_or_printer(message=msg,flag='info')
-       
-                                    continue #continue in the while loop.
-
-
-                            else:
-
-                                msg='Cannot proceed with OvenRestart operations due to resistance value outside operation range (0.5,5) Ohms. Exiting.\n'
-                                self.logger_or_printer(message=msg,flag='info')
-                                break # exit while loop
 
                     else:
 
-                        msg='Resistance value outside operation range (0.5,5) Ohms. Aborting OvenRestart module operations. Exiting.\n'
-                        self.logger_or_printer(message=msg,flag='info')
-                        self.write_L3_logbook(msg=msg)                            
+                        msg=('Resistance value outside operation range (0.5,5) Ohms. '+
+                            'Aborting OvenRestart module operations. Exiting.')
+                        myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+                                                    
 
                 else:
 
-                    msg='Oven {} appears to be already powered on. Aborting OvenRestart module operations. Exiting.\n'.format(Oven_choice)
-                    self.logger_or_printer(message=msg,flag='info')
-                    self.write_L3_logbook(msg=msg)
+                    msg=('Oven {} appears to be already powered on. '+
+                        'Aborting OvenRestart module operations. Exiting.').format(Oven_choice)
+                    myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
 
 
             else:
 
-                msg="The status of the oven {0} is {1}. Aborting OvenRestart module operations. Exiting.\n".format(Oven_choice,Oven_status)
-                self.logger_or_printer(message=msg,flag='info')
-                self.write_L3_logbook(msg=msg) 
+                msg=('The status of the oven {0} is {1}. '+
+                    'Aborting OvenRestart module operations. Exiting.').format(Oven_choice,Oven_status)
+                myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
         else:
 
 
             # Wait for new input and restart
-            msg='Inhibition of module OvenRestart: Inhibit flag raised by the user. Exiting.\n'
-            self.logger_or_printer(message=msg,flag='info')
-            self.write_L3_logbook(msg=msg) 
-
+            msg='Inhibition of module OvenRestart: Inhibit flag raised by the user. Exiting.'
+            myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
             
                 
     
 if __name__ == "__main__":
+    
+    my_log_dir='/afs/cern.ch/user/p/pzisopou/Linac3_Source/GHOST_Module/OvenRestart/log/'
         
     OR_object=OvenRestart(simulate_SET=False,INCA_ACCEL='LEIR',Oven_FESA_selector=None,
                  OvenResistance_selector='LEI.USER.ALL',OvenPower_wait=60,
                  OvenIncrPower_wait=20,Pressure_limit=1e-6,Pressure_wait=5,which_ebook='LINAC 3',
-                 no_elog_write=False,log_me=True,log_level='INFO') # # Roll back to SET mode with simulat_SET=True    
+                 no_elog_write=False,log_me=True,log_level='INFO',dir_logging=my_log_dir)
+                  # # Roll back to SET mode with simulat_SET=True    
     OR_object.run() # Run OvenRestart module.
 
 
