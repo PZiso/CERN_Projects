@@ -11,15 +11,15 @@ from time import sleep
 import pylogbook
 
 #Logging for keeping up with the flow...
-import logging
-
+import logging.handlers
 # For logging with time-stamp
 import datetime
 
 #Sys.exit needed for killing the module
 from sys import exit
 
-
+# For string search
+import re
 
 
 class GHOST():
@@ -62,6 +62,7 @@ class GHOST():
             
             japc=pyjapc.PyJapc(selector=self.japc_selector,
                                incaAcceleratorName=self.INCA_ACCEL,noSet=self.simulate_SET,logLevel=log) 
+        
             self.japc=japc
 
     # *--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--* 
@@ -237,7 +238,7 @@ class GHOST():
         elif where=='logbook':
 
             if not self.no_elog_write: 
-
+                msg=(msg+' [GHOST: {}]').format(self.mod_name)
                 self.elog.create_event(msg)
 
         else:
@@ -245,7 +246,7 @@ class GHOST():
             self.logger_or_printer(message=msg,flag=logfile_lvl)
 
             if not self.no_elog_write:
-
+                msg=(msg+' [GHOST: {}]').format(self.mod_name)
                 self.elog.create_event(msg)
 
     # *--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--* #
@@ -281,7 +282,13 @@ class GHOST():
         
         self.write_L3_log(msg=msg,where='both logs',logfile_lvl='info')
 
+     
+       
+    def string_found(self,string1, string2):
         
+       if re.search(r"\b" + re.escape(string1) + r"\b", string2):
+          return True
+       return False 
 
 
     def get_FESA_param(self,param_request):
@@ -300,25 +307,41 @@ class GHOST():
                                 'kill' 
         
         """
+        
+        
 
         my_field=self.FESA_GHOST_Device+'/'+self.FESA_GHOST_Property
         
+        my_list=self.japc.getParamInfo(my_field)
         
+        my_inquiry=my_field+'#'+self.mod_name+'_'+param_request
+        
+        assert self.string_found(my_inquiry,my_list),'Wrong name of FESA parameter: {}'.format(param_request)
+        
+        my_param=[]
 
-        try:
-
-            my_param=self.japc.getParam(my_field+'#'+self.mod_name+'_'+param_request)
-
-            return my_param
-
-        except:
-
-            msg=("There seems to be a problem communicating with the FEC." + 
-                " No GET action is possible. Aborting.")
+        while len(my_param)==0:
             
-            self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
-            raise ValueError(msg)
+            try:
+
+                my_param=[self.japc.getParam(my_inquiry)]
+
+                
+
+            except:
+
+                msg=("There seems to be a problem communicating with the FEC." + 
+                    " No GET action is possible. Rechecking in 5 minutes.").format(self.mod_name)
+                
+                self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+                
+                sleep(5*60)
+
+                
+
+
+        return my_param[0]
 
 
 
@@ -494,11 +517,14 @@ class GHOST():
                 self.japc.setParam(my_constructor,dic_FESA)
                 msg='Setting '+my_constructor+'#'+parameter+' parameter to value '+str(val_to_set)+'.'
                 self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+                
+                return True
 
             except:
 
                 msg='Unable to set '+my_constructor+'#'+parameter+' parameter to value '+str(val_to_set)+'.'
                 self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+                
                 raise ValueError(msg)
         
         else:
@@ -507,6 +533,8 @@ class GHOST():
                 '[{0},{1}]. Aborting SET operation for {2}.').format(lim_l,lim_r,my_constructor+'#'+parameter)
             
             self.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+            
+            return False
             
 
 # *--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--* #
@@ -641,7 +669,7 @@ class GHOST():
 
             if set_init:
 
-                self.set_my_JAPC_parameter(self,device=device,field=field,parameter=parameter,
+                self.set_my_JAPC_parameter(device=device,field=field,parameter=parameter,
                 val_to_set=val_to_set,lim_l=lim_l,lim_r=lim_r)
             
             exit(msg)# Exit from the module
@@ -661,10 +689,11 @@ class GHOST():
         
 if __name__=='__main__':
     
-    my_log_dir='/afs/cern.ch/user/p/pzisopou/Linac3_Source/GHOST_Module/OvenRestart/log/'
-    myGT=GHOST(mod_name='OvenRestart',FESA_GHOST_Device='GHOSTconfig',FESA_GHOST_Property='OvenRestart',
+#    my_log_dir='/afs/cern.ch/user/p/pzisopou/Linac3_Source/GHOST_Module/HTadjust/log/'
+   my_log_dir='/user/ln3op/GHOST/HTadjust/log/' 
+   myGT=GHOST(mod_name='HTadjust',FESA_GHOST_Device='GHOSTconfig',FESA_GHOST_Property='HTadjust',
                simulate_SET=True,INCA_ACCEL='LEIR',japc_selector=None,
-               which_ebook='TESTS',no_elog_write=True,log_me=True,log_level='INFO',dir_logging=my_log_dir)
+               which_ebook='TESTS',no_elog_write=False,log_me=True,log_level='INFO',dir_logging=my_log_dir)
 
 
 
