@@ -258,7 +258,7 @@ class OvenRestart(object):
         }
         """
         
-        global Oven_choice 
+        global Oven_choice, myGT
         
         # Initialize my helper !
 
@@ -290,7 +290,7 @@ class OvenRestart(object):
     
         
         #Check inhbit flag !
-        if not OvenRestart_inhibit:
+        if  not OvenRestart_inhibit:
 
             # Get the choice of oven
             Oven_choice=myGT.get_FESA_param('oven')
