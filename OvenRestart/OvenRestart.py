@@ -1,6 +1,6 @@
 import sys
 
-sys.path.append('../../lib')
+sys.path.append('/user/ln3op/GHOST/lib')
 
 from cmn_methods import *
 
@@ -356,7 +356,7 @@ class OvenRestart(object):
                         
 
                     msg='Setting power of oven {0} to 2 W.'.format(which_oven)
-                    myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+                    myGT.write_L3_log(msg=msg,where='both logs',logfile_lvl='info')
 
                     set_oven_power=2.0 #in Watts
 
@@ -387,10 +387,7 @@ class OvenRestart(object):
 
                     myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
-                    R=self.read_resistance()
-
-                    msg='The resistance of oven {0} is measured to be {1} Ohms.'.format(Oven_choice,R)
-                    myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+                    R=self.read_resistance() # Read resistance and push the value to the logfile
 
                     go_up=0.5 # Increase Oven Power by 0.5 W
 
@@ -399,7 +396,7 @@ class OvenRestart(object):
                         
                         msg=('Power of oven {0} is {1} W. '+
                             'Increasing power by {2} W.').format(which_oven,set_oven_power,go_up)
-                        myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+                        myGT.write_L3_log(msg=msg,where='both logs',logfile_lvl='info')
 
 
                         #increase the oven power
@@ -419,7 +416,7 @@ class OvenRestart(object):
                         time_wait=self.OvenIncrPower_wait
                         msg=('Oven {0} power increased by {1} W. '+
                             'Waiting for {2} minutes.').format(which_oven,go_up,time_wait)
-                        myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+                        myGT.write_L3_log(msg=msg,where='both logs',logfile_lvl='info')
 
                         myGT.wait_time_interval(FESA_time=time_wait,set_init=False)
 
