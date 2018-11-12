@@ -7,3 +7,6 @@ The packages that have already been developed are:
 1) HTadjust module (Infinite loop module)
 
 2) OvenRestart module (Single passage module)
+
+
+More information on GHOST: https://indico.cern.ch/event/764933/
