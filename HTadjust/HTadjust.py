@@ -1,7 +1,7 @@
 
 import sys
 
-sys.path.append('../../lib')
+sys.path.append('/user/ln3op/GHOST/lib')
 
 from cmn_methods import * # Some helper functions
 
@@ -475,6 +475,9 @@ class HTadjust(object):
 
                     msg='Setting the HT source voltage to the initial value.'
                     myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+
+                    myGT.set_my_JAPC_parameter(device='IP.NSRCGEN',field='Setting',my_selector=self.sourceHT_selector,
+                    parameter='sourceHT',val_to_set=HT_start,lim_l=safe_volt_low,lim_r=safe_volt_high)
 
 
                     myGT.wait_time_interval(FESA_time=HTadjust_interval,set_init=True,
