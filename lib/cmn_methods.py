@@ -4,6 +4,9 @@ import numpy as np
 #PyJAPC for getting & setting FESA parameters
 import pyjapc
  
+#Timber logs
+import pytimber
+
 # Time module for sleeping
 from time import sleep
 
@@ -12,6 +15,10 @@ import pylogbook
 
 #Logging for keeping up with the flow...
 import logging.handlers
+
+#Data manipulation
+import pandas as pd
+
 # For logging with time-stamp
 import datetime
 
@@ -20,6 +27,11 @@ from sys import exit
 
 # For string search
 import re
+
+
+#Plotting
+
+import matplotlib.pylab as plt
 
 
 class GHOST():
@@ -684,7 +696,54 @@ class GHOST():
 
             return
         
+    def read_timber(self,scale,offset,observable=['IP.NSRCGEN:SOURCEHTAQNI'],plot_me=True,pickle_me=False):
+                
+         if scale=='hours':
+            	delta=datetime.timedelta(hours=offset)
+         elif scale=='minutes':
+            	delta=datetime.timedelta(minutes=offset)
+         elif scale=='days':
+            	delta=datetime.timedelta(days=offset)
+         else:
+            	raise NameError('Wrong input for datetime conversion. Choose between "days","hours","minutes"')
+            
+            
+            
+         assert offset>=0,"Please provide a finite positive offset."
         
+         t1 = datetime.datetime.now() - delta
+        
+         t2 = datetime.datetime.now()
+        
+         
+         
+         db=pytimber.LoggingDB()
+        
+         data=db.get(observable,t1,t2)[observable[0]]
+         
+         
+         calendar=[pytimber.dumpdate(ts) for ts in data[0]]
+         
+         df=pd.DataFrame(index=calendar,columns=observable)
+         
+         for obs in observable:
+             
+             data=db.get(obs,t1,t2)[obs]
+             numeric=data[1]
+             df[obs]=numeric
+             
+        
+         
+        
+         if pickle_me:
+             df.to_pickle(calendar[-1]+'.pickle')
+             
+         if plot_me:
+             
+             df.plot(marker='o')
+             plt.show()
+             
+         return df.mean(),df.std()    
         
         
 if __name__=='__main__':
