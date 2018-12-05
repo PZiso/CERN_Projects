@@ -33,6 +33,11 @@ import re
 
 import matplotlib.pylab as plt
 
+#Send emails
+
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import smtplib
 
 class GHOST():
 
@@ -699,13 +704,13 @@ class GHOST():
     def read_timber(self,scale,offset,observable=['IP.NSRCGEN:SOURCEHTAQNI'],plot_me=True,pickle_me=False):
                 
          if scale=='hours':
-            	delta=datetime.timedelta(hours=offset)
+                delta=datetime.timedelta(hours=offset)
          elif scale=='minutes':
-            	delta=datetime.timedelta(minutes=offset)
+                delta=datetime.timedelta(minutes=offset)
          elif scale=='days':
-            	delta=datetime.timedelta(days=offset)
+                delta=datetime.timedelta(days=offset)
          else:
-            	raise NameError('Wrong input for datetime conversion. Choose between "days","hours","minutes"')
+                raise NameError('Wrong input for datetime conversion. Choose between "days","hours","minutes"')
             
             
             
@@ -743,24 +748,47 @@ class GHOST():
              df.plot(marker='o')
              plt.show()
              
-         return df.mean(),df.std()    
+         return df.mean(),df.std()
+
+
+    def send_email(self,sender='pzisopou@cern.ch',recipient='pzisopou@cern.ch',password='*************'):
+        
+        # create message object instance
+        msg = MIMEMultipart()
+         
+         
+        message = "Hello Detlef,\n\nThe module has finished with success :-).\n\nBest regards,\n\nGHOST"
+         
+        # setup the parameters of the message
+        
+        msg['From'] = sender
+        msg['To'] = recipient
+        msg['Subject'] = "[GHOST:{}]".format(self.mod_name)
+         
+        # add in the message body
+        msg.attach(MIMEText(message, 'plain'))
+         
+        #create server
+        server = smtplib.SMTP('smtp.cern.ch: 587')
+         
+        server.starttls()
+         
+        # Login Credentials for sending the mail
+        server.login(msg['From'], password)
+         
+         
+        # send the message via the server.
+        server.sendmail(msg['From'], msg['To'], msg.as_string())
+         
+        server.quit()
+         
+        print("Successfully sent email to {}".format(msg['To']))
+
         
         
 if __name__=='__main__':
     
-#    my_log_dir='/afs/cern.ch/user/p/pzisopou/Linac3_Source/GHOST_Module/HTadjust/log/'
    my_log_dir='/user/ln3op/GHOST/HTadjust/log/' 
    myGT=GHOST(mod_name='HTadjust',FESA_GHOST_Device='GHOSTconfig',FESA_GHOST_Property='HTadjust',
                simulate_SET=True,INCA_ACCEL='LEIR',japc_selector=None,
                which_ebook='TESTS',no_elog_write=False,log_me=True,log_level='INFO',dir_logging=my_log_dir)
-
-
-
-
-
-
-
-
-
-
-
