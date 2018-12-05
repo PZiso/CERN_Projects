@@ -76,7 +76,7 @@ class HTadjust(object):
         
         self.__author__='P. Zisopoulos (pzisopou@cern.ch)'
         
-        self.__version__='v.1.6'
+        self.__version__='v.1.7'
         
     
         
@@ -493,10 +493,11 @@ class HTadjust(object):
                 
                 HT_new, BCT15_new=self.HT_Decider(BCT15_all,HT_start,HTadjust_vrange)
                 
-                
+                go_on=False # Variable for continuing the search for optimum settings !
 
                 if not HTadjust_test:
 
+                    
 
                     myGT.set_my_JAPC_parameter(device='IP.NSRCGEN',field='Setting',
                      my_selector=self.sourceHT_selector,parameter='sourceHT',
@@ -510,16 +511,24 @@ class HTadjust(object):
                     myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
                 if not HT_start==HT_new:
+                    go_on=True # If a change was found, reduce the waiting time and iterate again.
                     msg=('HT extracting voltage [V]: {0}-->{1}, '+
                         'BCT15 I [mA]: {2}-->{3}').format(HT_start,HT_new,
                         "%.3f"%BCT15_all['Start'],"%.3f"%BCT15_new)
                     myGT.write_L3_log(msg=msg,where='both logs',logfile_lvl='info')
+
+                    msg=('Successful optimization of the transmitted ion current.'+
+                        ' Proceeding to next iteration as soon as possible.')
+                    myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
                     
                 
 
-                
+                if go_on:
+                    sleep_ht=10 # user defined sleep of 10 seconds !
+                else:
+                    sleep_ht=0 # no-user defined sleep !
 
-                myGT.wait_time_interval(FESA_time=HTadjust_interval,set_init=False)
+                myGT.wait_time_interval(FESA_time=HTadjust_interval,set_init=False,user_time=sleep_ht)
 
                 continue  #GOTO initial while loop
 
@@ -544,6 +553,7 @@ class HTadjust(object):
 if __name__ == "__main__":
 
     my_log_dir='/user/ln3op/GHOST/HTadjust/log/'
+    # my_log_dir='/afs/cern.ch/user/p/pzisopou/Linac3_Source/GHOST_Module/HTadjust/log/'
         
     HT_object=HTadjust(simulate_SET=False, sourceHT_selector=None,
                        BCT15_selector='LEI.USER.ALL',
