@@ -1,7 +1,7 @@
 import sys
 
-sys.path.append('/user/ln3op/GHOST/lib')
-
+#sys.path.append('/user/ln3op/GHOST/lib')
+sys.path.append('/afs/cern.ch/user/p/pzisopou/Linac3_Source/GHOST_Module/lib')
 from cmn_methods import *
 
 
@@ -96,7 +96,7 @@ class OvenRestart(object):
         
         self.__author__='P. Zisopoulos (pzisopou@cern.ch)'
         
-        self.__version__='v.1.0'
+        self.__version__='v.1.3'
         
     
     
@@ -123,7 +123,7 @@ class OvenRestart(object):
                 'Waiting for {1} minutes before '+
                 'next measurement.').format(self.Pressure_limit,time_wait)
 
-            myGT.write_L3_log(msg=msg+'[GHOST:OvenRestart]',where='both logs',logfile_lvl='info')
+            myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
             # Wait for 5 minutes
             myGT.wait_time_interval(FESA_time=time_wait,set_init=False)
@@ -160,14 +160,48 @@ class OvenRestart(object):
 
         myGT.japc.setSelector(None)
 
-        oven_power=myGT.japc.getParam(['IP.NSRCGEN/Setting#oven1Power',
-            'IP.NSRCGEN/Setting#oven2Power'])[left:right]
-        m=0
-        for powpow in oven_power:
-            msg='The power of oven {0} is measured to be {1} W.'.format(which_oven[m],"%.2f"%powpow)
-            myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
-            m+=1
+        
 
+        while True:
+
+            oven_power=myGT.japc.getParam(['IP.NSRCGEN/Setting#oven1Power',
+                'IP.NSRCGEN/Setting#oven2Power'])[left:right]
+            m=0
+
+            for powpow in oven_power:
+                
+                if np.isfinite(powpow):
+                
+                    msg='The power of oven {0} is measured to be {1} W.'.format(which_oven[m],"%.2f"%powpow)
+                    
+                    myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+                    
+                    m+=1
+                    
+                    rept=False
+                    
+                    continue
+                
+                else:
+                
+                    msg=('The power of oven {0} was not measured properly' + 
+                        ' (Value is : {1}). Repeating in one minute.').format(which_oven[m],powpow)
+                    myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+
+                    sleep(60)
+
+                    rept=True
+                    
+                    break
+
+
+
+            if rept:
+                continue
+            else:
+                break
+
+             
         return oven_power
 
     def read_resistance(self):
@@ -178,25 +212,62 @@ class OvenRestart(object):
         
         """
 
-        if Oven_choice==1 or Oven_choice==2:
+        
 
-            res=[myGT.get_my_JAPC_parameter(device='IP.NSRCGEN',field='Acquisition',
-                parameter='oven'+str(Oven_choice)+'AqnR',my_selector='LEI.USER.ALL',no_shots=1,subscribe_=1,verbose=False)['Mean']]
-            which_oven=[Oven_choice]
+        while True:
 
-        elif Oven_choice==3:
+            if Oven_choice==1 or Oven_choice==2:
 
-            res=[myGT.get_my_JAPC_parameter(device='IP.NSRCGEN',field='Acquisition',
-                parameter='oven1AqnR',my_selector='LEI.USER.ALL',no_shots=1,subscribe_=1,verbose=False)['Mean'],
-            myGT.get_my_JAPC_parameter(device='IP.NSRCGEN',field='Acquisition',
-                parameter='oven2AqnR',my_selector='LEI.USER.ALL',no_shots=1,subscribe_=1,verbose=False)['Mean']]
-            which_oven=[1,2]
+                res=[myGT.get_my_JAPC_parameter(device='IP.NSRCGEN',field='Acquisition',
+                    parameter='oven'+str(Oven_choice)+'AqnR',my_selector='LEI.USER.ALL',no_shots=1,subscribe_=1,verbose=False)['Mean']]
+                which_oven=[Oven_choice]
 
-        m=0
-        for r in res:
-            msg='The resistance of oven {0} is measured to be {1} Ohms.'.format(which_oven[m],"%.2f"%r)
-            myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
-            m+=1
+            elif Oven_choice==3:
+
+                res=[myGT.get_my_JAPC_parameter(device='IP.NSRCGEN',field='Acquisition',
+                    parameter='oven1AqnR',my_selector='LEI.USER.ALL',no_shots=1,subscribe_=1,verbose=False)['Mean'],
+                myGT.get_my_JAPC_parameter(device='IP.NSRCGEN',field='Acquisition',
+                    parameter='oven2AqnR',my_selector='LEI.USER.ALL',no_shots=1,subscribe_=1,verbose=False)['Mean']]
+                which_oven=[1,2]
+
+            
+            m=0
+            for r in res:
+                
+                if np.isfinite(r):
+
+                    msg=('The resistance of oven {0} is measured to be {1} Ohm.').format(which_oven[m],"%.2f"%r)
+                    myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+                    
+                    m+=1
+                    
+                    rept=False
+                    
+                    continue
+
+
+                else:
+
+                    msg=('The resistance of oven {0} was not measured properly '+
+                    '(Value is : {1}). Repeating in one minute.').format(which_oven[m],r)
+                    myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+                    
+                    sleep(60)
+                    
+                    rept=True
+
+                    break
+
+                
+
+
+            if rept:
+                continue
+            else:
+                break
+            
+
+            
 
         return res
 
@@ -303,7 +374,8 @@ class OvenRestart(object):
 
                 Oven_status=myGT.japc.getParam('IP.NSRCGEN/Status#oven'+str(Oven_choice)+'Status')[1]
                 which_oven=[Oven_choice]
-                msg='Oven {} is selected for restart.'.format(Oven_choice)
+                which_oven_str=Oven_choice
+                msg='Oven {} is selected for restart.'.format(which_oven_str)
 
                 myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
@@ -314,6 +386,7 @@ class OvenRestart(object):
                     'IP.NSRCGEN/Status#oven2Status'])]
                 
                 which_oven=[1,2]
+                which_oven_str='1 and 2'
                 msg='Ovens 1 and 2 are selected for restart.'
                 myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
@@ -330,7 +403,7 @@ class OvenRestart(object):
             if Oven_status=='ON':
 
                 msg=("The status of the oven {0} is {1}. " +
-                    "Proceeding with the reading of the oven power.").format(which_oven,Oven_status)
+                    "Proceeding with the reading of the oven power.").format(which_oven_str,Oven_status)
                 myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
 
@@ -351,21 +424,26 @@ class OvenRestart(object):
                     self.pressure_checker()
 
                     msg=('Pressure is larger than 1e-6 mbar. '+
-                        'Proceeding with resistance reading from oven {}.').format(which_oven)
+                        'Proceeding with resistance reading from oven {}.').format(which_oven_str)
                     myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
                         
 
-                    msg='Setting power of oven {0} to 2 W.'.format(which_oven)
-                    myGT.write_L3_log(msg=msg,where='both logs',logfile_lvl='info')
+                    msg='Setting power of oven {0} to 2 W.'.format(which_oven_str)
+                    myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
                     set_oven_power=2.0 #in Watts
 
                     for ov in which_oven:
+
                         is_safe_to_set=myGT.set_my_JAPC_parameter(device='IP.NSRCGEN',
                             field='Setting',parameter='oven'+str(ov)+'Power',
                             my_selector=None,val_to_set=set_oven_power,lim_l=0.0,lim_r=10.0)
 
-                    msg='The power of the oven {} is set. Waiting for 60 minutes.'.format(which_oven)
+                        msg='Power of oven {0} is set to {1} W.'.format(ov,"%.1f"%set_oven_power)
+                        myGT.write_L3_log(msg=msg,where='both logs',logfile_lvl='info')
+
+
+                    msg='The power of the oven {} is set. Waiting for 60 minutes.'.format(which_oven_str)
                     myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
                     #wait for 60 minutes
@@ -393,10 +471,6 @@ class OvenRestart(object):
 
                     while all(np.asarray(R)>0.5) and all(np.asarray(R)<5.0):
 
-                        
-                        msg=('Power of oven {0} is {1} W. '+
-                            'Increasing power by {2} W.').format(which_oven,set_oven_power,go_up)
-                        myGT.write_L3_log(msg=msg,where='both logs',logfile_lvl='info')
 
 
                         #increase the oven power
@@ -409,14 +483,18 @@ class OvenRestart(object):
                                 field='Setting',parameter='oven'+str(ov)+'Power',
                                 val_to_set=set_oven_power,lim_l=0.0,lim_r=10.0,my_selector=None)
 
+                            msg='Power of oven {0} is set to {1} W.'.format(ov,"%.1f"%set_oven_power)
+
+                            myGT.write_L3_log(msg=msg,where='both logs',logfile_lvl='info')
+
 
 
                         #wait for 20 minutes
 
                         time_wait=self.OvenIncrPower_wait
-                        msg=('Oven {0} power increased by {1} W. '+
-                            'Waiting for {2} minutes.').format(which_oven,go_up,time_wait)
-                        myGT.write_L3_log(msg=msg,where='both logs',logfile_lvl='info')
+                        
+                        msg='Oven {0} power increased by {1} W.'.format(which_oven,go_up)
+                        myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
                         myGT.wait_time_interval(FESA_time=time_wait,set_init=False)
 
@@ -435,45 +513,24 @@ class OvenRestart(object):
                         
 
                         
-                        msg='Checking if oven {0} is larger than 5.0 W.'.format(which_oven)
+                        msg='Checking if oven {0} power is larger than 5.0 W.'.format(which_oven)
                         myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
 
                         Oven_power=self.read_power()
 
                         if all(np.array(Oven_power)>=5.0):
-                            m=0
-
-                            for it in which_oven:
-
-                                msg=('Power measurement of '+
-                                    ' oven {0} is {1} W.').format(it,"%.2f"%Oven_power[m])
-                                
-                                myGT.write_L3_log(msg=msg,where='both logs',logfile_lvl='info')
-                                
-                                m+=1
-
+                            
                             msg="OvenRestart module finished with success. Goodbye! :-)"
-                            myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+                            myGT.write_L3_log(msg=msg,where='both logs',logfile_lvl='info')
                             
 
                             break #exit from the while loop
 
                         else:
-
-                            m=0
-
-                            for it in which_oven:
-                                msg=('Power measurement of '+
-                                    'oven {0} is {1} W. ').format(it,"%.2f"%Oven_power[m])
-                                myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
                             
 
-                            # Read resistance to determine if the module should go on
-                            R=self.read_resistance() 
-
-                            msg=('The resistance of oven {0} is measured '+
-                            'to be {1} Ohms.').format(Oven_choice,R)
-                            myGT.write_L3_log(msg=msg,where='logfile',logfile_lvl='info')
+                            
+                            R=self.read_resistance() # Read resistance to determine if the module should go on
                             
                             continue #continue in the while loop.
 
@@ -511,11 +568,11 @@ class OvenRestart(object):
     
 if __name__ == "__main__":
     
-    #my_log_dir='/afs/cern.ch/user/p/pzisopou/Linac3_Source/GHOST_Module/OvenRestart/log/'
+    my_log_dir='/afs/cern.ch/user/p/pzisopou/Linac3_Source/GHOST_Module/OvenRestart/log/'
     
-    my_log_dir='/user/ln3op/GHOST/OvenRestart/log/'
+    #my_log_dir='/user/ln3op/GHOST/OvenRestart/log/'
         
-    OR_object=OvenRestart(simulate_SET=False,INCA_ACCEL='LEIR',Oven_FESA_selector=None,
+    OR_object=OvenRestart(simulate_SET=True,INCA_ACCEL='LEIR',Oven_FESA_selector=None,
                  OvenResistance_selector='LEI.USER.ALL',OvenPower_wait=60,
                  OvenIncrPower_wait=20,Pressure_limit=1e-6,Pressure_wait=5,which_ebook='LINAC 3',
                  no_elog_write=False,log_me=True,log_level='INFO',dir_logging=my_log_dir)
