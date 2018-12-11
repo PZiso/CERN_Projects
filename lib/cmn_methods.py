@@ -748,7 +748,7 @@ class GHOST():
              df.plot(marker='o')
              plt.show()
              
-         return df.mean(),df.std()
+         return df
 
 
     def send_email(self,sender='pzisopou@cern.ch',recipient='pzisopou@cern.ch',password='*************'):
