@@ -701,7 +701,7 @@ class GHOST():
 
             return
         
-    def read_timber(self,scale,offset,observable=['IP.NSRCGEN:SOURCEHTAQNI'],plot_me=True,pickle_me=False):
+    def read_timber(self,scale,offset,observable=['IP.NSRCGEN:SOURCEHTAQNI'],plot_me=True,pickle_me=False,ax_obj=None):
                 
          if scale=='hours':
                 delta=datetime.timedelta(hours=offset)
@@ -745,7 +745,7 @@ class GHOST():
              
          if plot_me:
              
-             df.plot(marker='o')
+             df.plot(ax=ax_obj, marker='')
              plt.show()
              
          return df
