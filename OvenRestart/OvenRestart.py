@@ -523,6 +523,8 @@ class OvenRestart(object):
                             msg="OvenRestart module finished with success. Goodbye! :-)"
                             myGT.write_L3_log(msg=msg,where='both logs',logfile_lvl='info')
                             
+                            myGT.send_email()
+                            
 
                             break #exit from the while loop
 
