@@ -751,7 +751,7 @@ class GHOST():
          return df
 
 
-    def send_email(self,sender='gts.ghost@cern.ch',recipient='Detlef.Kuchler@cern.ch',password='LiliKesi5'):
+    def send_email(self,sender='gts.ghost@cern.ch',recipient='+41754114204@mail2sms.cern.ch',password='LiliKesi5'):
         
         # create message object instance
         msg = MIMEMultipart()
